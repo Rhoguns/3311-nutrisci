@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"main.java.com.nutrisci.app"},{"l":"main.java.com.nutrisci.dao"},{"l":"main.java.com.nutrisci.logic"},{"l":"main.java.com.nutrisci.model"},{"l":"main.java.com.nutrisci.ui"},{"l":"main.java.com.nutrisci.view"}]

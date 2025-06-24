@@ -10,6 +10,14 @@ import java.util.Date;
 
 public class TestModules {
     public static void main(String[] args) {
+        testProfileModule();
+        testMealModule();
+        testExerciseModule();
+        testSwapEngineModule();
+    }
+
+    /** Tests the Profile module. */
+    private static void testProfileModule() {
         System.out.println("=== Profile Test ===");
         Profile p = new Profile("TestUser", "Female", 30, 165.0, 65.0, "metric");
         System.out.println(p + "\n");
@@ -17,13 +25,26 @@ public class TestModules {
         System.out.println("=== Meal Test ===");
         Meal m = new Meal("Dinner", new Date());
         m.addIngredient("Egg", 80);
+    }
+
+    /** Tests the Meal module. */
+    private static void testMealModule() {
+        System.out.println("=== Meal Test ===");
+        Meal m = new Meal("Dinner", new Date());
+        m.addIngredient("Egg", 80);
         m.addIngredient("Bread", 50);
         System.out.println(m.summary() + "\n");
+    }
 
+    /** Tests the Exercise module. */
+    private static void testExerciseModule() {
         System.out.println("=== Exercise Test ===");
         Exercise e = new Exercise("Running", new Date(), 30);
         System.out.println(e.summary() + "\n");
+    }
 
+    /** Tests the SwapEngine module. */
+    private static void testSwapEngineModule() {
         System.out.println("=== SwapEngine Test ===");
         System.out.println(
             "Bread → reduce calories: " +

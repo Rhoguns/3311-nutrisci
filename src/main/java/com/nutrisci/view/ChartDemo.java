@@ -8,7 +8,15 @@ import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.JFrame;
 
+/**
+ * A simple demonstration class for creating and displaying a pie chart using JFreeChart.
+ * This class is primarily for testing and showcasing charting capabilities within the NutriSci application.
+ */
 public class ChartDemo {
+    /**
+     * Main method to run the chart demonstration.
+     * @param args Command line arguments (not used).
+     */
     public static void main(String[] args) {
         DefaultPieDataset dataset = new DefaultPieDataset();
         dataset.setValue("Protein", 25);
