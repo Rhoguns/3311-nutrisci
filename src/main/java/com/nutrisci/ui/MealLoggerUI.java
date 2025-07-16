@@ -1,128 +1,191 @@
-package main.java.com.nutrisci.ui;
+package com.nutrisci.ui;
 
-
-import main.java.com.nutrisci.model.Meal;
+import com.nutrisci.dao.MealDAO;
+import com.nutrisci.dao.MySQLMealDAO;
+import com.nutrisci.dao.MySQLNutritionDAO;
+import com.nutrisci.model.Meal;
+import com.nutrisci.service.AnalysisModule;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Date;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/**
- * A Swing UI for logging meals. 
- * <p>
- * Allows the user to enter a meal type, ingredients, and quantities,
- * then displays a running list and total calories.
- */
 public class MealLoggerUI extends JFrame {
-    /** Text field for the meal type (e.g., Breakfast, Lunch). */
-    private JTextField typeField;
+    private final JTextField tfProfileId   = new JTextField();
+    private final JComboBox<String> cbMealType = new JComboBox<>(
+        new String[]{"Breakfast", "Lunch", "Dinner", "Snack"});
+    private final JTextField tfLoggedAt     = new JTextField();
+    private final JTextArea taIngredients   = new JTextArea(5, 20);
+    private final JButton btnSave           = new JButton("Save");
+    private final JButton btnClear          = new JButton("Clear");
 
-    /** Text field for the ingredient name. */
-    private JTextField ingredientField;
+    private final MealDAO dao;
+    private final AnalysisModule analysis;
 
-    /** Text field for the ingredient quantity (in grams). */
-    private JTextField qtyField;
+    public MealLoggerUI(MealDAO dao) {
+        this.dao = dao;
+        // Use the real CNF-backed nutrition DAO for calorie calculations
+        this.analysis = new AnalysisModule(new MySQLNutritionDAO());
+        initComponents();
+    }
 
-    /** Button to add the current ingredient to the meal. */
-    private JButton addBtn;
+    private void initComponents() {
+        setTitle("Meal Logger");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
 
-    /** Button to save the meal and display total calories. */
-    private JButton saveBtn;
+        int y = 0;
 
-    /** Text area to log ingredients and totals. */
-    private JTextArea logArea;
+        // Profile ID
+        gbc.gridx = 0; gbc.gridy = y;
+        add(new JLabel("Profile ID:"), gbc);
+        gbc.gridx = 1;
+        add(tfProfileId, gbc);
+        y++;
 
-    /** The current Meal object being built. */
-    private Meal current;
+        // Label and combo box for selecting the meal type.
+        // Meal Type
+        gbc.gridx = 0; gbc.gridy = y;
+        add(new JLabel("Meal Type:"), gbc);
+        gbc.gridx = 1;
+        add(cbMealType, gbc);
+        y++;
 
-    /**
-     * Constructs the MealLoggerUI, laying out fields, buttons, and the log area.
-     */
-    public MealLoggerUI() {
-        super("Log Meal");
-        setLayout(new BorderLayout());
+        // Logged At
+        gbc.gridx = 0; gbc.gridy = y;
+        add(new JLabel("Logged At (yyyy-MM-dd HH:mm):"), gbc);
+        gbc.gridx = 1;
+        tfLoggedAt.setText(LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        add(tfLoggedAt, gbc);
+        y++;
 
-        // Top panel with entry fields
-        JPanel top = new JPanel(new GridLayout(3, 2));
-        top.add(new JLabel("Type:"));
-        typeField = new JTextField();
-        top.add(typeField);
+        // Ingredients
+        gbc.gridx = 0; gbc.gridy = y;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        add(new JLabel("<html>Ingredients:<br/>(one per line as name:grams)</html>"), gbc);
+        gbc.gridx = 1;
+        add(new JScrollPane(taIngredients), gbc);
+        y++;
 
-        top.add(new JLabel("Ingredient:"));
-        ingredientField = new JTextField();
-        top.add(ingredientField);
+        // Buttons
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        btnPanel.add(btnSave);
+        btnPanel.add(btnClear);
+        gbc.gridx = 0; gbc.gridy = y;
+        gbc.gridwidth = 2;
+        gbc.anchor    = GridBagConstraints.CENTER;
+        add(btnPanel, gbc);
 
-        top.add(new JLabel("Qty (g):"));
-        qtyField = new JTextField();
-        top.add(qtyField);
-
-        add(top, BorderLayout.NORTH);
-
-        // Center log area
-        logArea = new JTextArea(10, 30);
-        add(new JScrollPane(logArea), BorderLayout.CENTER);
-
-        // Bottom panel with buttons
-        JPanel btnp = new JPanel();
-        addBtn = new JButton("Add Ingredient");
-        saveBtn = new JButton("Save Meal");
-        btnp.add(addBtn);
-        btnp.add(saveBtn);
-        add(btnp, BorderLayout.SOUTH);
-
-        // Register listeners
-        addBtn.addActionListener(new AddListener());
-        saveBtn.addActionListener(new SaveListener());
+        // Listeners
+        btnSave.addActionListener(new SaveListener());
+        btnClear.addActionListener(e -> clearFields());
 
         pack();
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setVisible(true);
     }
 
-    /**
-     * Listener for the “Add Ingredient” button.
-     * Creates a Meal if needed, adds the ingredient, and logs it.
-     */
-    private class AddListener implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            if (current == null) {
-                current = new Meal(typeField.getText(), new Date());
-            }
-            String ing = ingredientField.getText();
-            double qty = Double.parseDouble(qtyField.getText());
-            current.addIngredient(ing, qty);
-            logArea.append(ing + ": " + qty + "g\n");
-            ingredientField.setText("");
-            qtyField.setText("");
-        }
+    private void clearFields() {
+        tfProfileId.setText("");
+        cbMealType.setSelectedIndex(0);
+        tfLoggedAt.setText(LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        taIngredients.setText("");
     }
 
-    /**
-     * Listener for the “Save Meal” button.
-     * Calculates and logs the total calories, then clears the current meal.
-     */
     private class SaveListener implements ActionListener {
         @Override
-        public void actionPerformed(ActionEvent e) {
-            if (current != null) {
-                logArea.append("TOTAL: " + current.getTotalCalories() + " kcal\n");
-                current = null;
+        public void actionPerformed(ActionEvent ev) {
+            try {
+                Meal m = new Meal();
+                m.setProfileId(Integer.parseInt(tfProfileId.getText().trim()));
+                m.setType((String) cbMealType.getSelectedItem());
+                LocalDateTime dt = LocalDateTime.parse(
+                    tfLoggedAt.getText().trim(),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                );
+                m.setLoggedAt(dt);
+
+                // parse ingredients (one per line: name:grams)
+                Map<String, Double> ingredients = new HashMap<>();
+                String[] lines = taIngredients.getText().split("\\r?\\n");
+                for (String line : lines) {
+                    if (line.isBlank()) continue;
+                    String[] parts = line.split(":");
+                    if (parts.length != 2) {
+                        throw new IllegalArgumentException("Invalid ingredient format: " + line);
+                    }
+                    String name = parts[0].trim();
+                    double qty = Double.parseDouble(parts[1].trim());
+                    ingredients.put(name, qty);
+                }
+                m.setIngredients(ingredients);
+
+                // save to DB
+                dao.insert(m);
+
+                // compute total calories using real CNF data
+                double totalCals = analysis.computeTotalCalories(List.of(m));
+
+                JOptionPane.showMessageDialog(
+                    MealLoggerUI.this,
+                    String.format(
+                        "Saved meal with ID: %d%nTotal calories: %.2f kcal",
+                        m.getId(), totalCals
+                    ),
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+                clearFields();
+
+            } catch (NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(
+                    MealLoggerUI.this,
+                    "Please enter valid numbers for Profile ID and ingredient grams.",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            } catch (IllegalArgumentException iae) {
+                JOptionPane.showMessageDialog(
+                    MealLoggerUI.this,
+                    iae.getMessage(),
+                    "Format Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            } catch (SQLException sqle) {
+                JOptionPane.showMessageDialog(
+                    MealLoggerUI.this,
+                    "Database error:\n" + sqle.getMessage(),
+                    "DB Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                    MealLoggerUI.this,
+                    "Unexpected error:\n" + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
             }
         }
     }
 
-    /**
-     * Launches the Meal Logger UI.
-     *
-     * @param args ignored
-     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            MealLoggerUI ui = new MealLoggerUI();
-            ui.setLocationRelativeTo(null);
-            ui.setVisible(true);
+            MealDAO dao = new MySQLMealDAO();  // JDBC-backed DAO
+            new MealLoggerUI(dao);
         });
     }
 }

@@ -1,14 +1,29 @@
-package main.java.com.nutrisci.dao;
+package com.nutrisci.dao;
 
-/**
- * Data Access Object interface for retrieving exercise burn rates.
- */
+import com.nutrisci.model.Exercise;
+import java.sql.SQLException;
+import java.util.List;
+
 public interface ExerciseDAO {
+
     /**
-     * Returns the calorie burn rate for a given exercise type.
-     *
-     * @param exerciseType the name of the exercise (e.g., "Running")
-     * @return the burn rate in kcal per minute
+     * Insert the given Exercise into storage.
+     * @param exercise the domain object to insert
+     * @return the generated ID of the new record
      */
-    double getBurnRatePerMinute(String exerciseType);
+    int insert(Exercise exercise) throws SQLException;
+
+    /**
+     * Find an Exercise by its primary key.
+     * @param id the record’s ID
+     * @return the Exercise, or null if not found
+     */
+    Exercise findById(int id) throws SQLException;
+
+    /**
+     * Return all Exercises in storage.
+     * @return list of all Exercise objects (empty if none)
+     */
+    List<Exercise> findAll() throws SQLException;
+
 }

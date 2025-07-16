@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.nutrisci.app"},{"l":"com.nutrisci.connector"},{"l":"com.nutrisci.controller"},{"l":"com.nutrisci.dao"},{"l":"com.nutrisci.logic"},{"l":"com.nutrisci.model"},{"l":"com.nutrisci.service"},{"l":"com.nutrisci.ui"},{"l":"com.nutrisci.view"}];updateSearchResults();

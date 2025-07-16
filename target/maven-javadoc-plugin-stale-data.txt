@@ -1,0 +1,59 @@
+-J-Duser.language=
+-J-Duser.country=
+@options
+@packages
+-classpath
+'/home/rhoguns/.m2/repository/com/mysql/mysql-connector-j/8.0.32/mysql-connector-j-8.0.32.jar:/home/rhoguns/.m2/repository/com/google/protobuf/protobuf-java/3.21.9/protobuf-java-3.21.9.jar:/home/rhoguns/.m2/repository/org/jfree/jfreechart/1.5.4/jfreechart-1.5.4.jar'
+-encoding
+'UTF-8'
+-protected
+-source
+'17'
+-sourcepath
+'/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/src/main/java'
+-author
+-bottom
+'Copyright &#169; 2025. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'NutriSci 1.0-SNAPSHOT API'
+-use
+-version
+-windowtitle
+'NutriSci 1.0-SNAPSHOT API'
+com.nutrisci.app
+com.nutrisci.connector
+com.nutrisci.controller
+com.nutrisci.dao
+com.nutrisci.logic
+com.nutrisci.model
+com.nutrisci.service
+com.nutrisci.ui
+com.nutrisci.view
+/home/rhoguns/.m2/repository/com/mysql/mysql-connector-j/8.0.32/mysql-connector-j-8.0.32.jar = 1752541256539
+/home/rhoguns/.m2/repository/com/google/protobuf/protobuf-java/3.21.9/protobuf-java-3.21.9.jar = 1752541256690
+/home/rhoguns/.m2/repository/org/jfree/jfreechart/1.5.4/jfreechart-1.5.4.jar = 1752613224227
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/src/main/java = 1752614129915
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/allclasses-index.html = 1752643588816
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/allpackages-index.html = 1752643588823
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/element-list = 1752643587979
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/help-doc.html = 1752643588888
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/index-all.html = 1752643588875
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/index.html = 1752643588786
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/jquery-ui.overrides.css = 1752643588952
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/member-search-index.js = 1752643588838
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/module-search-index.js = 1752643588827
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/overview-summary.html = 1752643588879
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/overview-tree.html = 1752643588780
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/package-search-index.js = 1752643588831
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/script.js = 1752643588899
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/search.js = 1752643588904
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/serialized-form.html = 1752643588314
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/stylesheet.css = 1752643588893
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/tag-search-index.js = 1752643588843
+/mnt/d/Users/prhog/OneDrive/Desktop/Sandbox/EECS 3311/3311-nutrisci/target/reports/apidocs/type-search-index.js = 1752643588834

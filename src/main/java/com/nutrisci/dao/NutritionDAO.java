@@ -1,22 +1,25 @@
-package main.java.com.nutrisci.dao;
+package com.nutrisci.dao;
 
-/**
- * Data Access Object for nutrient information.
- */
+import java.sql.SQLException;
+import java.util.Map;
+
 public interface NutritionDAO {
-    /**
-     * Returns the calorie count per gram for a given food item.
-     *
-     * @param foodName The name of the food item (e.g., "Egg", "Bread").
-     * @return The calories per gram for the specified food.
-     */
-    double getCaloriesPerGram(String foodName);
 
     /**
-     * Returns a map of nutrient breakdown per gram for a given food item.
+     * Retrieves the calories per gram for a specified food item.
      *
-     * @param foodName The name of the food item.
-     * @return A map where keys are nutrient names and values are grams per gram of food.
+     * @param foodName The name of the food item to query.
+     * @return The calories per gram for the food item, or 0.0 if the food is not found.
+     * @throws SQLException If a database access error occurs.
      */
-    java.util.Map<String, Double> getNutrientBreakdownPerGram(String foodName);
+    double getCaloriesPerGram(String foodName) throws SQLException;
+
+    /**
+     * Retrieves a detailed nutrient breakdown per gram for a specified food item.
+     *
+     * @param foodName The name of the food item to query.
+     * @return A Map where keys are nutrient names (e.g., "protein", "carbs", "fat", "fibre") and values are their quantities per gram. Returns an empty map if the food is not found.
+     * @throws SQLException If a database access error occurs.
+     */
+    Map<String, Double> getNutrientBreakdown(String foodName) throws SQLException;
 }

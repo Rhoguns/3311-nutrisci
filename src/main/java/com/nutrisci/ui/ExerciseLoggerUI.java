@@ -1,89 +1,134 @@
-package main.java.com.nutrisci.ui;
+package com.nutrisci.ui;
 
-import main.java.com.nutrisci.model.Exercise;
+import com.nutrisci.dao.ExerciseDAO;
+import com.nutrisci.dao.MySQLExerciseDAO;
+import com.nutrisci.model.Exercise;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Date;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-/**
- * A Swing UI for logging exercises.
- * <p>
- * Lets the user enter an exercise type and duration, then displays
- * each logged session’s summary including calories burned.
- */
 public class ExerciseLoggerUI extends JFrame {
-    /** Text field for the exercise type (e.g., "Running", "Cycling"). */
-    private JTextField typeField;
-    /** Text field for the exercise duration in minutes. */
-    private JTextField durationField;
-    /** Button to log the exercise session. */
-    private JButton logBtn;
-    /** Text area for displaying logged exercise summaries. */
-    private JTextArea outputArea;
-    /** The current Exercise object being logged. */
-    private Exercise current;
+    private final JTextField tfProfileId   = new JTextField();
+    private final JTextField tfName        = new JTextField();
+    private final JTextField tfDuration    = new JTextField();
+    // Text field for calories burned during the exercise.
+    private final JTextField tfCalories    = new JTextField();
+    // Text field for the timestamp when the exercise was performed.
+    private final JTextField tfPerformedAt = new JTextField();    
+    // Button to save the exercise record.
+    private final JButton    btnSave       = new JButton("Save");
+    // Button to clear all input fields.
+    private final JButton    btnClear      = new JButton("Clear");
 
     /**
-     * Constructs the Exercise Logger UI, laying out input fields,
-     * a log button, and an output text area.
+     * Data Access Object for Exercise operations.
+     * This field is final and initialized via the constructor.
      */
-    public ExerciseLoggerUI() {
-        super("Log Exercise");
-        setLayout(new BorderLayout());
+    private final ExerciseDAO dao;
 
-        // Top panel for inputs
-        JPanel top = new JPanel(new GridLayout(2, 2));
-        top.add(new JLabel("Type:"));
-        typeField = new JTextField();
-        top.add(typeField);
-
-        top.add(new JLabel("Duration (min):"));
-        durationField = new JTextField();
-        top.add(durationField);
-
-        add(top, BorderLayout.NORTH);
-
-        // Center output area
-        outputArea = new JTextArea(8, 30);
-        add(new JScrollPane(outputArea), BorderLayout.CENTER);
-
-        // Bottom button
-        logBtn = new JButton("Log Exercise");
-        add(logBtn, BorderLayout.SOUTH);
-        logBtn.addActionListener(new LogListener());
-
-        pack();
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+    public ExerciseLoggerUI(ExerciseDAO dao) {
+        this.dao = dao;
+        initComponents();
     }
 
-    /**
-     * Listener for the “Log Exercise” button.
-     * Creates an Exercise, appends its summary, and clears inputs.
-     */
-    private class LogListener implements ActionListener {
+    private void initComponents() {
+        setTitle("Exercise Logger");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new GridLayout(6, 2, 5, 5));
+
+        add(new JLabel("Profile ID:"));
+        add(tfProfileId);
+
+        add(new JLabel("Exercise Name:"));
+        add(tfName);
+
+        add(new JLabel("Duration (min):"));
+        add(tfDuration);
+
+        add(new JLabel("Calories Burned:"));
+        add(tfCalories);
+
+        add(new JLabel("Performed At (yyyy-MM-dd HH:mm):"));
+        tfPerformedAt.setText(LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        add(tfPerformedAt);
+
+        btnSave.addActionListener(new SaveListener());
+        add(btnSave);
+
+        btnClear.addActionListener(e -> clearFields());
+        add(btnClear);
+
+        pack();
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    private void clearFields() {
+        tfProfileId.setText("");
+        tfName.setText("");
+        tfDuration.setText("");
+        tfCalories.setText("");
+        tfPerformedAt.setText("");
+    }
+
+    private class SaveListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            String type = typeField.getText();
-            int duration = Integer.parseInt(durationField.getText());
-            current = new Exercise(type, new Date(), duration);
-            outputArea.append(current.summary() +
-                "\n------------------------\n");
-            outputArea.setCaretPosition(outputArea.getDocument().getLength());
-            typeField.setText("");
-            durationField.setText("");
+            try {
+                Exercise ex = new Exercise();
+                ex.setProfileId(Integer.parseInt(tfProfileId.getText().trim()));
+                ex.setName(tfName.getText().trim());
+                ex.setDurationMinutes(Double.parseDouble(tfDuration.getText().trim()));
+                ex.setCaloriesBurned(Double.parseDouble(tfCalories.getText().trim()));
+                LocalDateTime dt = LocalDateTime.parse(
+                    tfPerformedAt.getText().trim(),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                );
+                ex.setPerformedAt(dt);
+
+                int id = dao.insert(ex);
+                JOptionPane.showMessageDialog(
+                    ExerciseLoggerUI.this,
+                    "Saved exercise with ID: " + id,
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+                clearFields();
+            } catch (NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(
+                    ExerciseLoggerUI.this,
+                    "Please enter valid numbers.",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            } catch (SQLException sqle) {
+                JOptionPane.showMessageDialog(
+                    ExerciseLoggerUI.this,
+                    "Database error:\n" + sqle.getMessage(),
+                    "DB Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                    ExerciseLoggerUI.this,
+                    "Error:\n" + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            }
         }
     }
 
-    /**
-     * Launches the Exercise Logger UI on the Event Dispatch Thread.
-     *
-     * @param args command-line arguments (ignored)
-     */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ExerciseLoggerUI().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            ExerciseDAO dao = new MySQLExerciseDAO(); 
+            new ExerciseLoggerUI(dao);
+        });
     }
 }

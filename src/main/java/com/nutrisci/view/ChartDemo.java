@@ -1,38 +1,61 @@
-package main.java.com.nutrisci.view;
-// NutriSci - Nutrition and Exercise Tracking Application
+package com.nutrisci.view;
 
+import com.nutrisci.controller.NutritionController;
+import com.nutrisci.dao.MySQLNutritionDAO;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.general.DefaultPieDataset;
 
-import javax.swing.JFrame;
+import javax.swing.*;
+import java.util.Map;
 
-/**
- * A simple demonstration class for creating and displaying a pie chart using JFreeChart.
- * This class is primarily for testing and showcasing charting capabilities within the NutriSci application.
- */
-public class ChartDemo {
-    /**
-     * Main method to run the chart demonstration.
-     * @param args Command line arguments (not used).
-     */
-    public static void main(String[] args) {
+public class ChartDemo extends JFrame {
+    public ChartDemo(String title) {
+        super(title);
+
+        // Create the dataset
+        // Use the real CNF-backed nutrition DAO for calorie calculations
+        var nutritionDao = new MySQLNutritionDAO();
+        // Create a NutritionController to interact with nutrition data.
+        var nutritionCtrl = new NutritionController(nutritionDao);
+        // Define an array of food items for which to display calorie information.
+        String[] foods = { "Apple", "Banana", "Bread", "Cauliflower" };
+
         DefaultPieDataset dataset = new DefaultPieDataset();
-        dataset.setValue("Protein", 25);
-        dataset.setValue("Carbs",   50);
-        dataset.setValue("Fats",    20);
-        dataset.setValue("Other",    5);
+        // Iterate through each food item to retrieve its calorie information and add it to the dataset.
+        for (String food : foods) {
+            double kcal = 0.0;
+            try {
+                kcal = nutritionCtrl.getCaloriesPerGram(food);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            dataset.setValue(food, kcal);
+        }
 
+        // Create the pie chart
         JFreeChart chart = ChartFactory.createPieChart(
-            "Nutrient Breakdown", dataset, true, true, false
+            "Calories per gram (CNF)",   // chart title
+            dataset,                     // data
+            true,                        // include legend
+            true,
+            false
         );
 
-        JFrame frame = new JFrame("Chart Example");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setContentPane(new ChartPanel(chart));
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+        // Wrap it in a panel and put it on the frame
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
+        setContentPane(chartPanel);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            ChartDemo demo = new ChartDemo("NutriSci: Calorie Breakdown");
+            demo.pack();
+            demo.setLocationRelativeTo(null);
+            demo.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            demo.setVisible(true);
+        });
     }
 }

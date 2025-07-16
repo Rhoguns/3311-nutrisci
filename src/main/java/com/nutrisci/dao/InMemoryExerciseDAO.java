@@ -1,31 +1,63 @@
-package main.java.com.nutrisci.dao;
+package com.nutrisci.dao;
 
+import com.nutrisci.model.Exercise;
+
+import java.sql.SQLException;
+// Imports for data structures used to store exercises in memory.
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+// Imports for data structures used to store exercises in memory.
 import java.util.Map;
 
 /**
- * In-memory implementation of ExerciseDAO for retrieving exercise burn rates.
- * This class uses a hardcoded cache to simulate a database of exercise types and their burn rates.
+ * An in-memory implementation of the {@link ExerciseDAO} interface.
+ * This class stores {@link Exercise} objects in a {@link HashMap}
+ * and does not persist data to a database. It is primarily used for
+ * testing or demonstration purposes where a real database is not required.
  */
 public class InMemoryExerciseDAO implements ExerciseDAO {
-    /** Hardcoded cache of exercise burn rates (kcal/min). */
-    private static final Map<String, Double> BURN_CACHE = new HashMap<>();
+    // A HashMap to simulate a database table, mapping exercise IDs to Exercise objects.
+    private final Map<Integer, Exercise> store = new HashMap<>();
+    // A simple counter to generate unique IDs for new exercises.
+    private int nextId = 1;
 
-    static {
-        BURN_CACHE.put("running", 8.0);
-        BURN_CACHE.put("walking", 4.0);
-        BURN_CACHE.put("cycling", 7.0);
+    /**
+     * Inserts a new exercise into the in-memory store.
+     * A unique ID is generated and assigned to the exercise before storing.
+     *
+     * @param exercise the Exercise object to be inserted.
+     * @return the generated ID of the inserted exercise.
+     * @throws SQLException if a database access error occurs (not applicable for in-memory, but kept for interface compatibility).
+     */
+    @Override
+    public synchronized int insert(Exercise exercise) throws SQLException {
+        int id = nextId++;
+        exercise.setId(id);
+        store.put(id, exercise);
+        return id;
     }
 
     /**
-     * Returns the calorie burn rate per minute for a given exercise type.
-     * Falls back to a default rate of 5.0 kcal/min if the type is unrecognized.
+     * Finds an exercise by its ID in the in-memory store.
      *
-     * @param exerciseType the exercise type (e.g., "Running", "Walking")
-     * @return burn rate in kcal per minute
+     * @param id the ID of the exercise to find.
+     * @return the Exercise object if found, or null if no exercise with the given ID exists.
+     * @throws SQLException if a database access error occurs (not applicable for in-memory, but kept for interface compatibility).
      */
     @Override
-    public double getBurnRatePerMinute(String exerciseType) {
-        return BURN_CACHE.getOrDefault(exerciseType.toLowerCase(), 5.0);
+    public Exercise findById(int id) throws SQLException {
+        return store.get(id);
+    }
+
+    /**
+     * Retrieves all exercises currently stored in memory.
+     *
+     * @return a List of all Exercise objects in the store. Returns an empty list if no exercises are stored.
+     * @throws SQLException if a database access error occurs (not applicable for in-memory, but kept for interface compatibility).
+     */
+    @Override
+    public List<Exercise> findAll() throws SQLException {
+        return new ArrayList<>(store.values());
     }
 }

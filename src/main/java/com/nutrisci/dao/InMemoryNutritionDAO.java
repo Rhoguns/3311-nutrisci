@@ -1,50 +1,48 @@
-package main.java.com.nutrisci.dao;
+package com.nutrisci.dao;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-
-/**
- * In-memory implementation of NutritionDAO for retrieving nutritional information.
- * This class uses a hardcoded cache to simulate a database of food items and their
- * calorie and nutrient breakdowns.
- */
 public class InMemoryNutritionDAO implements NutritionDAO {
-    /**
-     * Hardcoded cache of calorie values per gram for various food items.
-     * Keys are food names (lowercase), values are calories per gram.
-     */
-    private static final Map<String, Double> CAL_CACHE = new HashMap<>();
-    static {
-        CAL_CACHE.put("egg", 1.55);
-        CAL_CACHE.put("bread", 2.5);
-        CAL_CACHE.put("tomato", 0.18);
+    // calories per gram lookup
+    private final Map<String, Double> caloriesMap = Map.of(
+        "Apple", 0.5,
+        "Banana", 0.89
+    );
+
+    // full nutrient breakdown lookup
+    private final Map<String, Map<String, Double>> breakdownMap = new HashMap<>();
+
+    public InMemoryNutritionDAO() {
+        // Example breakdown for Apple
+        Map<String, Double> appleNutrients = new HashMap<>();
+        // Protein content per gram for Apple
+        appleNutrients.put("protein", 0.003);
+        // Carbohydrate content per gram for Apple
+        appleNutrients.put("carbs",   0.14);
+        // Fat content per gram for Apple
+        appleNutrients.put("fat",     0.001);
+        // Fiber content per gram for Apple
+        appleNutrients.put("fibre",   0.02);
+        breakdownMap.put("Apple", appleNutrients);
+
+        // Example breakdown for Banana
+        Map<String, Double> bananaNutrients = new HashMap<>();
+        bananaNutrients.put("protein", 0.011);
+        bananaNutrients.put("carbs",   0.23);
+        bananaNutrients.put("fat",     0.003);
+        bananaNutrients.put("fibre",   0.025);
+        breakdownMap.put("Banana", bananaNutrients);
     }
 
-    /**
-     * Returns the calorie count per gram for a given food item.
-     * Falls back to a default rate of 1.0 kcal/gram if the food is unrecognized.
-     *
-     * @param foodName The name of the food item (e.g., "Egg", "Bread").
-     * @return The calories per gram for the specified food.
-     */
     @Override
-    public double getCaloriesPerGram(String foodName) {
-        return CAL_CACHE.getOrDefault(foodName.toLowerCase(), 1.0);
+    public double getCaloriesPerGram(String foodName) throws SQLException {
+        return caloriesMap.getOrDefault(foodName, 0.0);
     }
 
-    /**
-     * Returns a map of nutrient breakdown per gram for a given food item.
-     * Currently, this is a stub implementation that only returns calories.
-     *
-     * @param foodName The name of the food item.
-     * @return A map where keys are nutrient names and values are grams per gram of food.
-     */
     @Override
-    public Map<String, Double> getNutrientBreakdownPerGram(String foodName) {
-        // stub: return calories only
-        Map<String, Double> map = new HashMap<>();
-        map.put("calories", getCaloriesPerGram(foodName));
-        return map;
+    public Map<String, Double> getNutrientBreakdown(String foodName) throws SQLException {
+        return breakdownMap.getOrDefault(foodName, Map.of());
     }
 }
