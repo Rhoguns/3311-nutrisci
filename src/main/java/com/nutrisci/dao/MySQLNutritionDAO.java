@@ -1,41 +1,57 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.nutrisci.dao;
 
 import com.nutrisci.connector.DatabaseConnector;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.nutrisci.model.Meal;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MySQLNutritionDAO implements NutritionDAO {
-
-    /**
-     * Retrieves the calories per gram for a given food item from the database.
-     * The search is case-insensitive and uses a LIKE operator for partial matches.
-     *
-     * @param foodName The name of the food item to search for.
-     * @return The calories per gram if found, otherwise 0.0.
-     * @throws SQLException If a database access error occurs.
-     */
+public class MySQLNutritionDAO
+implements NutritionDAO {
     @Override
-    public double getCaloriesPerGram(String foodName) throws SQLException {
-        // SQL query to select calories_per_gram from the nutrient_data table.
-        // It uses a case-insensitive LIKE search for food_name and limits the result to 1.
-        String sql = """
-            SELECT calories_per_gram
-              FROM nutrient_data
-             WHERE LOWER(food_name) LIKE LOWER(CONCAT('%', ?, '%'))
-             LIMIT 1
-        """;
-        // Establish a connection and prepare the statement.
+    public Map<String, Double> getNutrientInfo(String foodName) throws SQLException {
+        Map<String, Double> nutrients = new HashMap<>();
+        
+        String sql = "SELECT nn.nutrient_name, na.nutrient_value " +
+                     "FROM food f " +
+                     "JOIN nutrient_amount na ON f.id = na.food_id " +
+                     "JOIN nutrient_name nn ON na.nutrient_name_id = nn.id " +
+                     "WHERE f.food_description = ?";
+
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, foodName.trim()); // Set the foodName parameter, trimming whitespace.
+            
+            ps.setString(1, foodName);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) { // If a result is found, return the calories_per_gram.
-                    return rs.getDouble("calories_per_gram"); // Retrieve and return the value.
+                while (rs.next()) {
+                    String nutrientName = rs.getString("nutrient_name");
+                    double nutrientValue = rs.getDouble("nutrient_value");
+                    nutrients.put(nutrientName, nutrientValue);
+                }
+            }
+        }
+        
+        return nutrients;
+    }
+
+    @Override
+    public double getCaloriesPerGram(String foodName) throws SQLException {
+        String sql = "SELECT na.nutrient_value " +
+                     "FROM food f " +
+                     "JOIN nutrient_amount na ON f.id = na.food_id " +
+                     "JOIN nutrient_name nn ON na.nutrient_name_id = nn.id " +
+                     "WHERE f.food_description = ? AND nn.nutrient_name LIKE 'Energy%'";
+
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, foodName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble("nutrient_value") / 100.0;
                 }
             }
         }
@@ -43,41 +59,75 @@ public class MySQLNutritionDAO implements NutritionDAO {
     }
 
     @Override
+    public Map<String, Double> calculateMealNutrients(Map<String, Double> ingredients) throws SQLException {
+        Map<String, Double> totalNutrients = new HashMap<>();
+        
+        for (Map.Entry<String, Double> ingredient : ingredients.entrySet()) {
+            Map<String, Double> nutrientInfo = getNutrientInfo(ingredient.getKey());
+            double quantity = ingredient.getValue();
+            
+            for (Map.Entry<String, Double> nutrient : nutrientInfo.entrySet()) {
+                double adjustedValue = nutrient.getValue() * (quantity / 100.0);
+                totalNutrients.merge(nutrient.getKey(), adjustedValue, Double::sum);
+            }
+        }
+        
+        return totalNutrients;
+    }
+
+    @Override
     public Map<String, Double> getNutrientBreakdown(String foodName) throws SQLException {
-        /**
-         * Retrieves the nutrient breakdown (protein, carbs, fat, fibre) per gram for a given food item from the database.
-         * The search is case-insensitive and uses a LIKE operator for partial matches.
-         *
-         * @param foodName The name of the food item to search for.
-         * @return A Map containing the nutrient breakdown if found, otherwise an empty map.
-         * @throws SQLException If a database access error occurs.
-         */
-        String sql = """
-            SELECT
-              protein_per_gram,
-              carbs_per_gram,
-              fat_per_gram,
-              fibre_per_gram
-            FROM nutrient_data
-            WHERE LOWER(food_name) LIKE LOWER(CONCAT('%', ?, '%'))
-            LIMIT 1
-        """;
-        // Establish a connection and prepare the statement.
+        return getNutrientInfo(foodName);
+    }
+
+    @Override
+    public Map<String, Double> getNutrientTotalsForMeal(Meal meal) throws SQLException {
+        Map<String, Double> totalNutrients = new HashMap<>();
+        if (meal.getIngredients() == null || meal.getIngredients().isEmpty()) {
+            return totalNutrients;
+        }
+
+        String sql = "SELECT nn.nutrient_name, na.nutrient_value " +
+                     "FROM food f " +
+                     "JOIN nutrient_amount na ON f.id = na.food_id " +
+                     "JOIN nutrient_name nn ON na.nutrient_name_id = nn.id " +
+                     "WHERE f.food_description = ? AND nn.nutrient_name IN " +
+                     "('Energy (kcal)', 'Protein', 'Carbohydrate, by difference', 'Total lipid (fat)', 'Fibre, total dietary')";
+
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, foodName.trim()); // Set the foodName parameter, trimming whitespace.
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) { // If a result is found, populate and return the breakdown map.
-                    Map<String, Double> breakdown = new HashMap<>();
-                    // Retrieve and put each nutrient value into the map.
-                    breakdown.put("protein", rs.getDouble("protein_per_gram"));
-                    breakdown.put("carbs",   rs.getDouble("carbs_per_gram"));
-                    breakdown.put("fat",     rs.getDouble("fat_per_gram"));
-                    breakdown.put("fibre",   rs.getDouble("fibre_per_gram"));
-                    return breakdown;
+
+            for (Map.Entry<String, Double> ingredient : meal.getIngredients().entrySet()) {
+                String foodName = ingredient.getKey();
+                double quantityGrams = ingredient.getValue();
+
+                ps.setString(1, foodName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String nutrientName = rs.getString("nutrient_name");
+                        double nutrientValue = rs.getDouble("nutrient_value") * (quantityGrams / 100.0);
+                        totalNutrients.merge(nutrientName, nutrientValue, Double::sum);
+                    }
                 }
             }
         }
-        return Map.of();
+        return totalNutrients;
+    }
+
+    @Override
+    public String getFoodGroup(String foodName) throws SQLException {
+        String sql = "SELECT food_group FROM food WHERE food_description = ?";
+        
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, foodName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("food_group");
+                }
+            }
+        }
+        return "Unknown";
     }
 }

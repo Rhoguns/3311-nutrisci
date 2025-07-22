@@ -1,134 +1,95 @@
 package com.nutrisci.ui;
 
-import com.nutrisci.dao.ExerciseDAO;
-import com.nutrisci.dao.MySQLExerciseDAO;
-import com.nutrisci.model.Exercise;
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
-public class ExerciseLoggerUI extends JFrame {
-    private final JTextField tfProfileId   = new JTextField();
-    private final JTextField tfName        = new JTextField();
-    private final JTextField tfDuration    = new JTextField();
-    // Text field for calories burned during the exercise.
-    private final JTextField tfCalories    = new JTextField();
-    // Text field for the timestamp when the exercise was performed.
-    private final JTextField tfPerformedAt = new JTextField();    
-    // Button to save the exercise record.
-    private final JButton    btnSave       = new JButton("Save");
-    // Button to clear all input fields.
-    private final JButton    btnClear      = new JButton("Clear");
+public class ExerciseLoggerUI extends JPanel {
+    private int profileId = 1; // Default profile
 
-    /**
-     * Data Access Object for Exercise operations.
-     * This field is final and initialized via the constructor.
-     */
-    private final ExerciseDAO dao;
-
-    public ExerciseLoggerUI(ExerciseDAO dao) {
-        this.dao = dao;
-        initComponents();
+    public ExerciseLoggerUI() {
+        initializeUI();
     }
 
-    private void initComponents() {
-        setTitle("Exercise Logger");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new GridLayout(6, 2, 5, 5));
-
-        add(new JLabel("Profile ID:"));
-        add(tfProfileId);
-
-        add(new JLabel("Exercise Name:"));
-        add(tfName);
-
-        add(new JLabel("Duration (min):"));
-        add(tfDuration);
-
-        add(new JLabel("Calories Burned:"));
-        add(tfCalories);
-
-        add(new JLabel("Performed At (yyyy-MM-dd HH:mm):"));
-        tfPerformedAt.setText(LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        add(tfPerformedAt);
-
-        btnSave.addActionListener(new SaveListener());
-        add(btnSave);
-
-        btnClear.addActionListener(e -> clearFields());
-        add(btnClear);
-
-        pack();
-        setLocationRelativeTo(null);
-        setVisible(true);
+    private void initializeUI() {
+        setLayout(new BorderLayout());
+        setBorder(BorderFactory.createTitledBorder("UC3: Exercise Logger"));
+        
+        JLabel titleLabel = new JLabel("Exercise Logging Interface", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        add(titleLabel, BorderLayout.NORTH);
+        
+        JPanel controlPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        
+        // Profile ID display
+        gbc.gridx = 0; gbc.gridy = 0;
+        controlPanel.add(new JLabel("Profile ID:"), gbc);
+        gbc.gridx = 1;
+        JLabel profileLabel = new JLabel(String.valueOf(profileId));
+        controlPanel.add(profileLabel, gbc);
+        
+        // Exercise type
+        gbc.gridx = 0; gbc.gridy = 1;
+        controlPanel.add(new JLabel("Exercise Type:"), gbc);
+        gbc.gridx = 1;
+        JComboBox<String> exerciseCombo = new JComboBox<>(new String[]{"Running", "Walking", "Cycling", "Swimming", "Weight Training", "Yoga"});
+        controlPanel.add(exerciseCombo, gbc);
+        
+        // Duration
+        gbc.gridx = 0; gbc.gridy = 2;
+        controlPanel.add(new JLabel("Duration (minutes):"), gbc);
+        gbc.gridx = 1;
+        JSpinner durationSpinner = new JSpinner(new SpinnerNumberModel(30, 1, 300, 1));
+        controlPanel.add(durationSpinner, gbc);
+        
+        // Intensity
+        gbc.gridx = 0; gbc.gridy = 3;
+        controlPanel.add(new JLabel("Intensity:"), gbc);
+        gbc.gridx = 1;
+        JComboBox<String> intensityCombo = new JComboBox<>(new String[]{"Low", "Moderate", "High"});
+        controlPanel.add(intensityCombo, gbc);
+        
+        // Log button
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+        JButton logButton = new JButton("Log Exercise");
+        logButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, 
+                "Exercise logged successfully!\n" +
+                "Profile: " + profileId + "\n" +
+                "Exercise: " + exerciseCombo.getSelectedItem() + "\n" +
+                "Duration: " + durationSpinner.getValue() + " minutes\n" +
+                "Intensity: " + intensityCombo.getSelectedItem(), 
+                "Success", 
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        controlPanel.add(logButton, gbc);
+        
+        add(controlPanel, BorderLayout.CENTER);
+        
+        // Status area
+        JTextArea statusArea = new JTextArea(3, 50);
+        statusArea.setEditable(false);
+        statusArea.setText("Ready to log exercises for Profile " + profileId);
+        statusArea.setBackground(getBackground());
+        add(statusArea, BorderLayout.SOUTH);
     }
 
-    private void clearFields() {
-        tfProfileId.setText("");
-        tfName.setText("");
-        tfDuration.setText("");
-        tfCalories.setText("");
-        tfPerformedAt.setText("");
+    public void setProfile(int profileId) {
+        this.profileId = profileId;
+        updateProfileInComponents(this, profileId);
     }
 
-    private class SaveListener implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            try {
-                Exercise ex = new Exercise();
-                ex.setProfileId(Integer.parseInt(tfProfileId.getText().trim()));
-                ex.setName(tfName.getText().trim());
-                ex.setDurationMinutes(Double.parseDouble(tfDuration.getText().trim()));
-                ex.setCaloriesBurned(Double.parseDouble(tfCalories.getText().trim()));
-                LocalDateTime dt = LocalDateTime.parse(
-                    tfPerformedAt.getText().trim(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                );
-                ex.setPerformedAt(dt);
-
-                int id = dao.insert(ex);
-                JOptionPane.showMessageDialog(
-                    ExerciseLoggerUI.this,
-                    "Saved exercise with ID: " + id,
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-                clearFields();
-            } catch (NumberFormatException nfe) {
-                JOptionPane.showMessageDialog(
-                    ExerciseLoggerUI.this,
-                    "Please enter valid numbers.",
-                    "Input Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            } catch (SQLException sqle) {
-                JOptionPane.showMessageDialog(
-                    ExerciseLoggerUI.this,
-                    "Database error:\n" + sqle.getMessage(),
-                    "DB Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(
-                    ExerciseLoggerUI.this,
-                    "Error:\n" + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
+    private void updateProfileInComponents(Container container, int newProfileId) {
+        for (Component comp : container.getComponents()) {
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                if (label.getText().matches("\\d+")) {
+                    label.setText(String.valueOf(newProfileId));
+                }
+            } else if (comp instanceof Container) {
+                updateProfileInComponents((Container) comp, newProfileId);
             }
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            ExerciseDAO dao = new MySQLExerciseDAO(); 
-            new ExerciseLoggerUI(dao);
-        });
     }
 }

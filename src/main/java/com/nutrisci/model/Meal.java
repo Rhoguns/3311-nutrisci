@@ -1,5 +1,9 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.nutrisci.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,11 +12,12 @@ public class Meal {
     private int id;
     private int profileId;
     private String type;
+    private String mealType;  // Add this field
     private LocalDateTime loggedAt;
+    private LocalDate date;  // Add this field
     private Map<String, Double> ingredients = new HashMap<>();
 
     public Meal() {
-        // default constructor
     }
 
     public Meal(String type, LocalDateTime loggedAt) {
@@ -20,10 +25,8 @@ public class Meal {
         this.loggedAt = loggedAt;
     }
 
-    // getters and setters
-
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -31,7 +34,7 @@ public class Meal {
     }
 
     public int getProfileId() {
-        return profileId;
+        return this.profileId;
     }
 
     public void setProfileId(int profileId) {
@@ -39,7 +42,7 @@ public class Meal {
     }
 
     public String getType() {
-        return type;
+        return this.type;
     }
 
     public void setType(String type) {
@@ -47,7 +50,7 @@ public class Meal {
     }
 
     public LocalDateTime getLoggedAt() {
-        return loggedAt;
+        return this.loggedAt;
     }
 
     public void setLoggedAt(LocalDateTime loggedAt) {
@@ -55,21 +58,32 @@ public class Meal {
     }
 
     public Map<String, Double> getIngredients() {
-        return ingredients;
+        return this.ingredients;
     }
 
     public void setIngredients(Map<String, Double> ingredients) {
         this.ingredients = ingredients;
     }
 
-    @Override
+    // Add missing methods for tests
+    public String getMealType() {
+        return mealType != null ? mealType : type;
+    }
+
+    public void setMealType(String mealType) {
+        this.mealType = mealType;
+        if (this.type == null) this.type = mealType; 
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
     public String toString() {
-        return "Meal{" +
-               "id=" + id +
-               ", profileId=" + profileId +
-               ", type='" + type + '\'' +
-               ", loggedAt=" + loggedAt +
-               ", ingredients=" + ingredients +
-               '}';
+        return "Meal{id=" + this.id + ", profileId=" + this.profileId + ", type='" + this.type + "', loggedAt=" + String.valueOf(this.loggedAt) + ", ingredients=" + String.valueOf(this.ingredients) + "}";
     }
 }

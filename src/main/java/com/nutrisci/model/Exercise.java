@@ -1,23 +1,23 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.nutrisci.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Exercise {
-    // Unique identifier for the exercise record.
     private int id;
-    // ID of the user profile associated with this exercise.
     private int profileId;
-    // Name or description of the exercise (e.g., "Running", "Weightlifting").
     private String name;
-    // Duration of the exercise in minutes.
+    private String exerciseType;  // Add this field
     private double durationMinutes;
-    // Estimated calories burned during the exercise.
+    private int duration;  // Add this field for integer duration
     private double caloriesBurned;
-    // Timestamp indicating when the exercise was performed.
     private LocalDateTime performedAt;
+    private LocalDate date;  // Add this field
 
     public Exercise() {
-        // default constructor
     }
 
     public Exercise(int profileId, String name, double durationMinutes, double caloriesBurned, LocalDateTime performedAt) {
@@ -28,12 +28,8 @@ public class Exercise {
         this.performedAt = performedAt;
     }
 
-    /**
-     * Getters and Setters for all fields.
-     */
-
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -41,7 +37,7 @@ public class Exercise {
     }
 
     public int getProfileId() {
-        return profileId;
+        return this.profileId;
     }
 
     public void setProfileId(int profileId) {
@@ -49,7 +45,7 @@ public class Exercise {
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
     public void setName(String name) {
@@ -57,7 +53,7 @@ public class Exercise {
     }
 
     public double getDurationMinutes() {
-        return durationMinutes;
+        return this.durationMinutes;
     }
 
     public void setDurationMinutes(double durationMinutes) {
@@ -65,7 +61,7 @@ public class Exercise {
     }
 
     public double getCaloriesBurned() {
-        return caloriesBurned;
+        return this.caloriesBurned;
     }
 
     public void setCaloriesBurned(double caloriesBurned) {
@@ -73,22 +69,39 @@ public class Exercise {
     }
 
     public LocalDateTime getPerformedAt() {
-        return performedAt;
+        return this.performedAt;
     }
 
     public void setPerformedAt(LocalDateTime performedAt) {
         this.performedAt = performedAt;
     }
 
-    @Override
+    // Add missing methods for tests
+    public String getExerciseType() {
+        return this.exerciseType;
+    }
+
+    public void setExerciseType(String exerciseType) {
+        this.exerciseType = exerciseType;
+    }
+
+    public int getDuration() {
+        return this.duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public LocalDate getDate() {
+        return this.date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
     public String toString() {
-        return "Exercise{" +
-               "id=" + id +
-               ", profileId=" + profileId +
-               ", name='" + name + '\'' +
-               ", durationMinutes=" + durationMinutes +
-               ", caloriesBurned=" + caloriesBurned +
-               ", performedAt=" + performedAt +
-               '}';
+        return "Exercise{id=" + this.id + ", profileId=" + this.profileId + ", name='" + this.name + "', durationMinutes=" + this.durationMinutes + ", caloriesBurned=" + this.caloriesBurned + ", performedAt=" + String.valueOf(this.performedAt) + "}";
     }
 }

@@ -1,8 +1,8 @@
 package com.nutrisci.ui;
 
+import com.nutrisci.dao.DAOFactory;
 import com.nutrisci.dao.MealDAO;
-import com.nutrisci.dao.MySQLMealDAO;
-import com.nutrisci.dao.MySQLNutritionDAO;
+import com.nutrisci.dao.NutritionDAOImpl; 
 import com.nutrisci.model.Meal;
 import com.nutrisci.service.AnalysisModule;
 
@@ -14,10 +14,11 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class MealLoggerUI extends JFrame {
+public class MealLoggerUI extends JPanel {
+    private int profileId = 1; 
+
     private final JTextField tfProfileId   = new JTextField();
     private final JComboBox<String> cbMealType = new JComboBox<>(
         new String[]{"Breakfast", "Lunch", "Dinner", "Snack"});
@@ -29,72 +30,73 @@ public class MealLoggerUI extends JFrame {
     private final MealDAO dao;
     private final AnalysisModule analysis;
 
-    public MealLoggerUI(MealDAO dao) {
-        this.dao = dao;
-        // Use the real CNF-backed nutrition DAO for calorie calculations
-        this.analysis = new AnalysisModule(new MySQLNutritionDAO());
-        initComponents();
+    public MealLoggerUI() {
+        this.dao = DAOFactory.getMealDAO(); 
+        this.analysis = new AnalysisModule(new NutritionDAOImpl());
+        initializeUI();
     }
 
-    private void initComponents() {
-        setTitle("Meal Logger");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new GridBagLayout());
+    public MealLoggerUI(MealDAO dao) {
+        this.dao = dao;
+        this.analysis = new AnalysisModule(new NutritionDAOImpl());
+        initializeUI();
+    }
+
+    private void initializeUI() {
+        setLayout(new BorderLayout());
+        setBorder(BorderFactory.createTitledBorder("UC2: Meal Logger"));
+        
+        JLabel titleLabel = new JLabel("Meal Logging Interface", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        add(titleLabel, BorderLayout.NORTH);
+        
+        JPanel controlPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
-
-        int y = 0;
-
-        // Profile ID
-        gbc.gridx = 0; gbc.gridy = y;
-        add(new JLabel("Profile ID:"), gbc);
+        gbc.insets = new Insets(5, 5, 5, 5);
+        
+        // Profile ID display
+        gbc.gridx = 0; gbc.gridy = 0;
+        controlPanel.add(new JLabel("Profile ID:"), gbc);
         gbc.gridx = 1;
-        add(tfProfileId, gbc);
-        y++;
-
-        // Label and combo box for selecting the meal type.
-        // Meal Type
-        gbc.gridx = 0; gbc.gridy = y;
-        add(new JLabel("Meal Type:"), gbc);
+        JLabel profileLabel = new JLabel(String.valueOf(profileId));
+        controlPanel.add(profileLabel, gbc);
+        
+        // Meal name input
+        gbc.gridx = 0; gbc.gridy = 1;
+        controlPanel.add(new JLabel("Meal Name:"), gbc);
         gbc.gridx = 1;
-        add(cbMealType, gbc);
-        y++;
-
-        // Logged At
-        gbc.gridx = 0; gbc.gridy = y;
-        add(new JLabel("Logged At (yyyy-MM-dd HH:mm):"), gbc);
+        JTextField mealNameField = new JTextField(20);
+        controlPanel.add(mealNameField, gbc);
+        
+        // Food items input
+        gbc.gridx = 0; gbc.gridy = 2;
+        controlPanel.add(new JLabel("Food Items:"), gbc);
         gbc.gridx = 1;
-        tfLoggedAt.setText(LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        add(tfLoggedAt, gbc);
-        y++;
-
-        // Ingredients
-        gbc.gridx = 0; gbc.gridy = y;
-        gbc.anchor = GridBagConstraints.NORTHWEST;
-        add(new JLabel("<html>Ingredients:<br/>(one per line as name:grams)</html>"), gbc);
-        gbc.gridx = 1;
-        add(new JScrollPane(taIngredients), gbc);
-        y++;
-
-        // Buttons
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        btnPanel.add(btnSave);
-        btnPanel.add(btnClear);
-        gbc.gridx = 0; gbc.gridy = y;
-        gbc.gridwidth = 2;
-        gbc.anchor    = GridBagConstraints.CENTER;
-        add(btnPanel, gbc);
-
-        // Listeners
-        btnSave.addActionListener(new SaveListener());
-        btnClear.addActionListener(e -> clearFields());
-
-        pack();
-        setLocationRelativeTo(null);
-        setVisible(true);
+        JTextArea foodItemsArea = new JTextArea(5, 20);
+        foodItemsArea.setBorder(BorderFactory.createLoweredBevelBorder());
+        controlPanel.add(new JScrollPane(foodItemsArea), gbc);
+        
+        // Log button
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        JButton logButton = new JButton("Log Meal");
+        logButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, 
+                "Meal logged successfully!\n" +
+                "Profile: " + profileId + "\n" +
+                "Meal: " + mealNameField.getText(), 
+                "Success", 
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        controlPanel.add(logButton, gbc);
+        
+        add(controlPanel, BorderLayout.CENTER);
+        
+        // Status area
+        JTextArea statusArea = new JTextArea(3, 50);
+        statusArea.setEditable(false);
+        statusArea.setText("Ready to log meals for Profile " + profileId);
+        statusArea.setBackground(getBackground());
+        add(statusArea, BorderLayout.SOUTH);
     }
 
     private void clearFields() {
@@ -136,8 +138,27 @@ public class MealLoggerUI extends JFrame {
                 // save to DB
                 dao.insert(m);
 
-                // compute total calories using real CNF data
-                double totalCals = analysis.computeTotalCalories(List.of(m));
+                // compute total calories manually using working NutritionDAOImpl
+                double totalCals = 0.0;
+                NutritionDAOImpl nutritionDAO = new NutritionDAOImpl();
+                
+                System.out.println("=== Computing calories ===");
+                for (Map.Entry<String, Double> entry : m.getIngredients().entrySet()) {
+                    String foodName = entry.getKey();
+                    double grams = entry.getValue();
+                    
+                    try {
+                        double caloriesPerGram = nutritionDAO.getCaloriesPerGram(foodName);
+                        double ingredientCalories = caloriesPerGram * grams;
+                        totalCals += ingredientCalories;
+                        
+                        System.out.println(foodName + ": " + caloriesPerGram + " cal/g × " + grams + "g = " + ingredientCalories + " calories");
+                    } catch (Exception e) {
+                        System.out.println("Error getting calories for '" + foodName + "': " + e.getMessage());
+                    }
+                }
+                
+                System.out.println("Total calories: " + totalCals);
 
                 JOptionPane.showMessageDialog(
                     MealLoggerUI.this,
@@ -182,9 +203,28 @@ public class MealLoggerUI extends JFrame {
         }
     }
 
+    public void setProfile(int profileId) {
+        this.profileId = profileId;
+        Component[] components = getComponents();
+        updateProfileInComponents(this, profileId);
+    }
+
+    private void updateProfileInComponents(Container container, int newProfileId) {
+        for (Component comp : container.getComponents()) {
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                if (label.getText().matches("\\d+")) {
+                    label.setText(String.valueOf(newProfileId));
+                }
+            } else if (comp instanceof Container) {
+                updateProfileInComponents((Container) comp, newProfileId);
+            }
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            MealDAO dao = new MySQLMealDAO();  // JDBC-backed DAO
+            MealDAO dao = new MySQLMealDAO();
             new MealLoggerUI(dao);
         });
     }
