@@ -1,6 +1,5 @@
--- nutrient_import.sql
 
--- Drop & recreate staging tables
+
 DROP TABLE IF EXISTS cnf_food_name;
 DROP TABLE IF EXISTS cnf_nutr_amount;
 DROP TABLE IF EXISTS cnf_nutr_name;
@@ -43,7 +42,7 @@ CREATE TABLE cnf_nutr_name (
   num_dec   INT
 );
 
--- Bulk‐load the CSVs from sql/ (adjust paths if needed)
+
 LOAD DATA LOCAL INFILE 'sql/FOOD NAME.csv'
 INTO TABLE cnf_food_name
   CHARACTER SET latin1
@@ -74,7 +73,7 @@ INTO TABLE cnf_nutr_name
   IGNORE 1 ROWS
   (nutr_no, units, tagname, nutr_desc, num_dec);
 
--- Drop & recreate the application table
+
 DROP TABLE IF EXISTS nutrient_data;
 CREATE TABLE nutrient_data (
   food_name           VARCHAR(200) PRIMARY KEY,
@@ -85,7 +84,7 @@ CREATE TABLE nutrient_data (
   fibre_per_gram      DOUBLE
 );
 
--- Populate nutrient_data once, using common_name or long_desc as the key
+
 INSERT IGNORE INTO nutrient_data (
   food_name,
   calories_per_gram,
@@ -95,7 +94,7 @@ INSERT IGNORE INTO nutrient_data (
   fibre_per_gram
 )
 SELECT
-  -- prefer the human-readable common_name; if blank, use the long_desc
+
   COALESCE(NULLIF(fn.common_name, ''), fn.long_desc)      AS food_name,
   COALESCE(na208.nutr_val,0)/100                          AS calories_per_gram,  -- 208 = Energy (kcal)
   COALESCE(na203.nutr_val,0)/100                          AS protein_per_gram,   -- 203 = Protein (g)

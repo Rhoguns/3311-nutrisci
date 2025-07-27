@@ -8,6 +8,7 @@ public class SwapRule {
     private String originalFood;
     private String suggestedFood;
     private String goal;
+    private double improvementValue;
 
     public SwapRule() {
     }
@@ -49,6 +50,14 @@ public class SwapRule {
 
     public void setGoal(String goal) {
         this.goal = goal;
+    }
+
+    public void setImprovementValue(double improvementValue) {
+        this.improvementValue = improvementValue;
+    }
+
+    public double getImprovementValue() {
+        return improvementValue;
     }
 
     @Override

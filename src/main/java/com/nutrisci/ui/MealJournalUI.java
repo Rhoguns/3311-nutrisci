@@ -5,18 +5,13 @@ import com.nutrisci.dao.MealDAO;
 import com.nutrisci.dao.NutritionDAO;
 import com.nutrisci.dao.SwapRuleDAO;
 import com.nutrisci.logic.SwapEngine;
-import com.nutrisci.model.AppliedSwap;
 import com.nutrisci.model.Meal;
-import com.nutrisci.model.SwapRule;
-import com.nutrisci.service.AnalysisModule;
-
+import com.nutrisci.info.NutrientInfo;
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -39,19 +34,14 @@ public class MealJournalUI extends JPanel {
     private MealDAO mealDao;
     private SwapRuleDAO swapRuleDao;
     private NutritionDAO nutritionDao;
-    private AnalysisModule analysisModule;
     private SwapEngine swapEngine;
 
     public MealJournalUI() {
-        // Initialize DAOs
         this.mealDao = DAOFactory.getMealDAO();
         this.swapRuleDao = DAOFactory.getSwapRuleDAO();
         this.nutritionDao = DAOFactory.getNutritionDAO();
-        this.analysisModule = new AnalysisModule(nutritionDao);
         
-        // FIX: Pass the mealDao as the fourth argument to the constructor
-        this.swapEngine = new SwapEngine(analysisModule, nutritionDao, swapRuleDao, mealDao);
-
+        this.swapEngine = new SwapEngine(swapRuleDao, mealDao);
         initializeComponents();
         setupLayout();
         setupMealRenderer();
@@ -65,17 +55,14 @@ public class MealJournalUI extends JPanel {
         cbIngredients = new JComboBox<>();
         tfProfileId = new JTextField("1", 10);
         
-        // Buttons
         btnLoadMeals = new JButton("Load Meals");
         btnGetSuggestions = new JButton("Get Swap Suggestions");
         btnApplySwap = new JButton("Apply Selected Swap");
         
-        // Ingredients panel
         taIngredients = new JPanel();
         taIngredients.setBorder(BorderFactory.createTitledBorder("Current Meal Ingredients"));
         taIngredients.setLayout(new BorderLayout());
         
-        // Initially disable buttons until meals are loaded
         btnGetSuggestions.setEnabled(false);
         btnApplySwap.setEnabled(false);
     }
@@ -121,17 +108,14 @@ public class MealJournalUI extends JPanel {
             return;
         }
 
-        // Create interactive ingredients panel with individual swap buttons
         JPanel ingredientsPanel = createInteractiveIngredientsPanel(selectedMeal);
         
-        // Replace the content with the interactive panel
         taIngredients.removeAll();
         taIngredients.setLayout(new BorderLayout());
         taIngredients.add(new JScrollPane(ingredientsPanel), BorderLayout.CENTER);
         taIngredients.revalidate();
         taIngredients.repaint();
         
-        // Enable buttons
         btnGetSuggestions.setEnabled(true);
         btnApplySwap.setEnabled(false);
         
@@ -180,41 +164,8 @@ public class MealJournalUI extends JPanel {
         statusLabel.setText("Getting suggestions for " + ingredient + "...");
 
         try {
-            // Add debug logging
-            System.out.println("=== DEBUG: Swap Suggestion ===");
-            System.out.println("Looking for swaps for: '" + ingredient + "'");
-
-            // Check if we can get nutrition data for this food
-            try {
-                double calories = nutritionDao.getCaloriesPerGram(ingredient);
-                System.out.println("✓ Food found in nutrition DB: " + calories + " cal/g");
-            } catch (Exception e) {
-                System.out.println("✗ Food NOT found in nutrition DB: " + e.getMessage());
-            }
-            
-            // Check what swap rules exist in database
-            try {
-                List<SwapRule> allRules = swapRuleDao.findAll();
-                System.out.println("✓ Total swap rules in database: " + allRules.size());
-                
-                // Check for rules matching this food and goal
-                int matchingRules = 0;
-                for (SwapRule rule : allRules) {
-                    if (rule.getOriginalFood().equalsIgnoreCase(ingredient) && 
-                        rule.getGoal().equalsIgnoreCase(selectedGoal)) {
-                        matchingRules++;
-                        System.out.println("  ✓ Found rule: " + ingredient + " → " + rule.getSuggestedFood());
-                    }
-                }
-                System.out.println("✓ Matching rules for '" + ingredient + "' + '" + selectedGoal + "': " + matchingRules);
-                
-            } catch (Exception e) {
-                System.out.println("✗ Error accessing swap rules: " + e.getMessage());
-            }
-            
             // Test the swap engine
             String suggestion = swapEngine.suggestSwap(ingredient, selectedGoal);
-            System.out.println("SwapEngine result: '" + suggestion + "'");
 
             if (suggestion == null || suggestion.equals("No suggestion available")) {
                 statusLabel.setText("No swaps available for " + ingredient);
@@ -250,12 +201,10 @@ public class MealJournalUI extends JPanel {
     private void showNutritionalSwapAnalysis(String originalFood, double quantity, 
                                            List<String> suggestions, String goal, Meal originalMeal) {
         try {
-            // Create analysis dialog
             JDialog analysisDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
                     "Nutritional Swap Analysis", true);
             analysisDialog.setLayout(new BorderLayout());
             
-            // Create main panel
             JPanel mainPanel = new JPanel(new BorderLayout());
             
             // Title panel
@@ -306,12 +255,12 @@ public class MealJournalUI extends JPanel {
         
         try {
             // Get original food nutrition
-            double origCalories = nutritionDao.getCaloriesPerGram(originalFood) * quantity;
-            Map<String, Double> origNutrients = nutritionDao.getNutrientInfo(originalFood);
-            double origProtein = origNutrients.getOrDefault("protein", 0.0) * quantity;
-            double origCarbs = origNutrients.getOrDefault("carbs", 0.0) * quantity;
-            double origFat = origNutrients.getOrDefault("fat", 0.0) * quantity;
-            double origFiber = origNutrients.getOrDefault("fibre", 0.0) * quantity;
+            double origCalories = nutritionDao.getNutrientInfo(originalFood).getCaloriesPerGram() * quantity;
+            NutrientInfo origNutrients = nutritionDao.getNutrientInfo(originalFood);
+            double origProtein = origNutrients.getProteinPerGram() * quantity;
+            double origCarbs = origNutrients.getCarbsPerGram() * quantity;
+            double origFat = origNutrients.getFatPerGram() * quantity;
+            double origFiber = 0.0; // Fiber data not available in NutrientInfo
             
             // Original food panel
             JPanel originalPanel = createFoodNutritionPanel(
@@ -328,12 +277,12 @@ public class MealJournalUI extends JPanel {
                 String suggestedFood = suggestion.split(" \\(")[0].trim();
                 
                 try {
-                    double sugCalories = nutritionDao.getCaloriesPerGram(suggestedFood) * quantity;
-                    Map<String, Double> sugNutrients = nutritionDao.getNutrientInfo(suggestedFood);
-                    double sugProtein = sugNutrients.getOrDefault("protein", 0.0) * quantity;
-                    double sugCarbs = sugNutrients.getOrDefault("carbs", 0.0) * quantity;
-                    double sugFat = sugNutrients.getOrDefault("fat", 0.0) * quantity;
-                    double sugFiber = sugNutrients.getOrDefault("fibre", 0.0) * quantity;
+                    double sugCalories = nutritionDao.getNutrientInfo(suggestedFood).getCaloriesPerGram() * quantity;
+                    NutrientInfo sugNutrients = nutritionDao.getNutrientInfo(suggestedFood);
+                    double sugProtein = sugNutrients.getProteinPerGram() * quantity;
+                    double sugCarbs = sugNutrients.getCarbsPerGram() * quantity;
+                    double sugFat = sugNutrients.getFatPerGram() * quantity;
+                    double sugFiber = 0.0; // Fiber data not available in NutrientInfo
                     
                     // Calculate deltas
                     double calDelta = sugCalories - origCalories;
@@ -499,7 +448,7 @@ public class MealJournalUI extends JPanel {
             JPanel barsPanel = new JPanel();
             barsPanel.setLayout(new BoxLayout(barsPanel, BoxLayout.Y_AXIS));
             
-            double origCalories = nutritionDao.getCaloriesPerGram(originalFood) * quantity;
+            double origCalories = nutritionDao.getNutrientInfo(originalFood).getCaloriesPerGram() * quantity;
             
             // Original food bar
             JPanel origBar = createCalorieBar("Original: " + originalFood, origCalories, origCalories, Color.GRAY);
@@ -509,7 +458,7 @@ public class MealJournalUI extends JPanel {
             for (int i = 0; i < Math.min(suggestions.size(), 5); i++) {
                 String suggestedFood = suggestions.get(i).split(" \\(")[0].trim();
                 try {
-                    double sugCalories = nutritionDao.getCaloriesPerGram(suggestedFood) * quantity;
+                    double sugCalories = nutritionDao.getNutrientInfo(suggestedFood).getCaloriesPerGram() * quantity;
                     Color barColor = sugCalories < origCalories ? Color.GREEN : Color.RED;
                     JPanel sugBar = createCalorieBar("Option " + (i+1) + ": " + suggestedFood, 
                             sugCalories, origCalories, barColor);
@@ -578,28 +527,28 @@ public class MealJournalUI extends JPanel {
             analysis.append("NUTRITIONAL IMPACT ANALYSIS\n");
             analysis.append("=" .repeat(50)).append("\n\n");
             
-            double origCalories = nutritionDao.getCaloriesPerGram(originalFood) * quantity;
-            Map<String, Double> origNutrients = nutritionDao.getNutrientInfo(originalFood);
+            double origCalories = nutritionDao.getNutrientInfo(originalFood).getCaloriesPerGram() * quantity;
+            NutrientInfo origNutrients = nutritionDao.getNutrientInfo(originalFood);
             
             analysis.append(String.format("Original Food: %s (%.0fg)\n", originalFood, quantity));
             analysis.append(String.format("Calories: %.1f kcal\n", origCalories));
             analysis.append(String.format("Protein: %.1fg, Carbs: %.1fg, Fat: %.1fg\n\n", 
-                    origNutrients.getOrDefault("protein", 0.0) * quantity,
-                    origNutrients.getOrDefault("carbs", 0.0) * quantity,
-                    origNutrients.getOrDefault("fat", 0.0) * quantity));
+                    origNutrients.getProteinPerGram() * quantity,
+                    origNutrients.getCarbsPerGram() * quantity,
+                    origNutrients.getFatPerGram() * quantity));
             
             for (int i = 0; i < Math.min(suggestions.size(), 3); i++) {
                 String suggestedFood = suggestions.get(i).split(" \\(")[0].trim();
                 try {
-                    double sugCalories = nutritionDao.getCaloriesPerGram(suggestedFood) * quantity;
-                    Map<String, Double> sugNutrients = nutritionDao.getNutrientInfo(suggestedFood);
+                    double sugCalories = nutritionDao.getNutrientInfo(suggestedFood).getCaloriesPerGram() * quantity;
+                    NutrientInfo sugNutrients = nutritionDao.getNutrientInfo(suggestedFood);
                     
                     analysis.append(String.format("Option %d: %s\n", i+1, suggestedFood));
                     analysis.append(String.format("Calorie Change: %+.1f kcal (%.1f%% change)\n", 
                             sugCalories - origCalories,
                             ((sugCalories - origCalories) / origCalories) * 100));
                     analysis.append(String.format("Protein Change: %+.1fg\n", 
-                            (sugNutrients.getOrDefault("protein", 0.0) - origNutrients.getOrDefault("protein", 0.0)) * quantity));
+                            (sugNutrients.getProteinPerGram() - origNutrients.getProteinPerGram()) * quantity));
                     analysis.append("\n");
                 } catch (Exception e) {
                     analysis.append(String.format("Option %d: %s - Nutrition data unavailable\n\n", i+1, suggestedFood));
@@ -624,27 +573,22 @@ public class MealJournalUI extends JPanel {
         statusLabel.setText("Use individual 'Suggest & Apply Swap' buttons next to each ingredient");
     }
 
-    // Add this missing method
+    
     private void applySingleSwap(String food, double qty, String goal, Meal original, String suggestion) {
         statusLabel.setText("Applying swap: " + food + " → " + suggestion);
 
         try {
             String newFood = suggestion;
 
-            // Fix: Use the correct method signature based on your SwapEngine
-            // Option 1: If applySwap takes 3 parameters (original, oldFood, newFood)
             Meal swappedMeal = swapEngine.applySwap(original, food, newFood);
             
-            // Option 2: If applySwap takes 4 parameters (original, oldFood, newFood, qty)
-            // Meal swappedMeal = swapEngine.applySwap(original, food, newFood, qty);
-
+            
             mealDao.insert(swappedMeal);
 
             statusLabel.setText("Swap applied successfully: " + newFood);
 
-            // Calculate actual calorie difference for this quantity
-            double originalCalories = nutritionDao.getCaloriesPerGram(food) * qty;
-            double newCalories = nutritionDao.getCaloriesPerGram(newFood) * qty;
+            double originalCalories = nutritionDao.getNutrientInfo(food).getCaloriesPerGram() * qty;
+            double newCalories = nutritionDao.getNutrientInfo(newFood).getCaloriesPerGram() * qty;
             double calorieDifference = newCalories - originalCalories;
 
             String successMessage = String.format(
@@ -689,28 +633,29 @@ public class MealJournalUI extends JPanel {
             int profileId = Integer.parseInt(tfProfileId.getText().trim());
             
             List<Meal> meals = mealDao.findAll();
-            // Filter by profile ID if needed
-            meals = meals.stream()
-                    .filter(meal -> meal.getProfileId() == profileId)
-                    .collect(java.util.stream.Collectors.toList());
+            List<Meal> filtered = new java.util.ArrayList<>();
+            for (Meal meal : meals) {
+                if (meal.getProfileId() == profileId) {
+                    filtered.add(meal);
+                }
+            }
+            
             cbMeals.removeAllItems();
-            for (Meal m : meals) {
+            for (Meal m : filtered) {
                 cbMeals.addItem(m);
             }
             
-            if (meals.size() > 0) {
-                statusLabel.setText("Loaded " + meals.size() + " meals for profile " + profileId);
+            if (filtered.size() > 0) {
+                statusLabel.setText("Loaded " + filtered.size() + " meals");
                 onMealSelected();
             } else {
-                statusLabel.setText("No meals found for profile " + profileId + ". Create some meals first!");
+                statusLabel.setText("No meals found. Use Meal Logger to create meals first.");
             }
             
         } catch (NumberFormatException e) {
             statusLabel.setText("Invalid profile ID");
-            JOptionPane.showMessageDialog(this, "Please enter a valid profile ID", "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (SQLException ex) {
-            statusLabel.setText("Error loading meals for profile");
-            JOptionPane.showMessageDialog(this, "Error loading meals:\n" + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            statusLabel.setText("Database error");
         }
     }
 
@@ -736,9 +681,6 @@ public class MealJournalUI extends JPanel {
         });
     }
 
-    private String formatSuggestionClean(String suggestion) {
-        return suggestion.replaceAll("[^a-zA-Z0-9\\s\\-\\.]", "").trim();
-    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

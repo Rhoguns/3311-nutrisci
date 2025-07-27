@@ -16,24 +16,25 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 
 public class DailyIntakePanel extends JPanel {
-    private final JTextField tfProfileId = new JTextField(8);
-    private final JTextField tfFromDate = new JTextField(LocalDate.now().minusDays(7).toString(), 12);
-    private final JTextField tfToDate = new JTextField(LocalDate.now().toString(), 12);
-    private final JButton btnLoad = new JButton("Load Data");
-    private final JLabel statusLabel = new JLabel("Ready - Enter profile and date range to load data.");
-    private final JTable intakeTable = new JTable();
-    private final JPanel chartContainer = new JPanel(new GridLayout(1, 2, 10, 10));
+    private JTextField tfProfileId = new JTextField(8);
+    private JTextField tfFromDate = new JTextField(LocalDate.now().minusDays(7).toString(), 12);
+    private JTextField tfToDate = new JTextField(LocalDate.now().toString(), 12);
+    private JButton btnLoad = new JButton("Load Data");
+    private JLabel statusLabel = new JLabel("Ready - Enter profile and date range to load data.");
+    private JTable intakeTable = new JTable();
+    private JPanel chartContainer = new JPanel(new GridLayout(1, 2, 10, 10));
+    private DefaultTableModel tableModel;
+    private ChartPanel calorieChartPanel;
+    private ChartPanel macroChartPanel;
 
-    private final AnalysisModule analysisModule = new AnalysisModule(DAOFactory.getNutritionDAO());
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private AnalysisModule analysisModule = new AnalysisModule(DAOFactory.getNutritionDAO());
+    private DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public DailyIntakePanel() {
         initComponents();
@@ -43,19 +44,15 @@ public class DailyIntakePanel extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        
         add(createTopPanel(), BorderLayout.NORTH);
 
-        
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 new JScrollPane(intakeTable), chartContainer);
         splitPane.setDividerLocation(250);
         add(splitPane, BorderLayout.CENTER);
 
-        
         add(createStatusPanel(), BorderLayout.SOUTH);
 
-        
         chartContainer.add(new JLabel("Charts will appear here after loading data.", SwingConstants.CENTER));
 
         btnLoad.addActionListener(this::loadDailyIntake);
@@ -83,7 +80,6 @@ public class DailyIntakePanel extends JPanel {
 
     private void loadDailyIntake(ActionEvent ev) {
         try {
-            
             int profileId = Integer.parseInt(tfProfileId.getText().trim());
             LocalDate fromDate = LocalDate.parse(tfFromDate.getText().trim(), dateFormatter);
             LocalDate toDate = LocalDate.parse(tfToDate.getText().trim(), dateFormatter);
@@ -93,33 +89,39 @@ public class DailyIntakePanel extends JPanel {
             }
 
             statusLabel.setText("Loading daily intake data for profile " + profileId + "...");
-
             
             List<DailySummary> summaries = analysisModule.getDailyIntakeSummary(profileId, fromDate, toDate);
 
             if (summaries.isEmpty()) {
-                statusLabel.setText("No meal data found for the selected profile and date range.");
-                JOptionPane.showMessageDialog(this, "No meal data found.", "No Data", JOptionPane.INFORMATION_MESSAGE);
+                statusLabel.setText("No meal data found for the selected profile and date range. Use Meal Logger to add meals first.");
+                clearCharts();
                 return;
             }
 
-            
             updateTable(summaries);
-
-            
             updateCharts(summaries);
-
             statusLabel.setText("Successfully loaded " + summaries.size() + " days of data.");
 
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid numeric Profile ID.", "Input Error", JOptionPane.ERROR_MESSAGE);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid date format. Please use yyyy-mm-dd.", "Input Error", JOptionPane.ERROR_MESSAGE);
-        } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            statusLabel.setText("Error: " + ex.getMessage());
         }
+    }
+    
+    private void clearCharts() {
+        tableModel.setRowCount(0);
+        
+        DefaultCategoryDataset emptyDataset = new DefaultCategoryDataset();
+        JFreeChart emptyChart = ChartFactory.createLineChart(
+            "No Data Available - Add meals to see daily calorie trends", 
+            "Date", "Calories", emptyDataset);
+        calorieChartPanel.setChart(emptyChart);
+        
+        DefaultPieDataset<String> emptyPieDataset = new DefaultPieDataset<>();
+        emptyPieDataset.setValue("No Data", 1.0);
+        JFreeChart emptyPieChart = ChartFactory.createPieChart(
+            "Add meals to see macronutrient breakdown", 
+            emptyPieDataset, false, false, false);
+        macroChartPanel.setChart(emptyPieChart);
     }
 
     private void updateTable(List<DailySummary> summaries) {
@@ -167,14 +169,20 @@ public class DailyIntakePanel extends JPanel {
 
         chartContainer.add(new ChartPanel(lineChart));
 
-        double totalProtein = summaries.stream().mapToDouble(AnalysisModule.DailySummary::getTotalProtein).sum();
-        double totalCarbs = summaries.stream().mapToDouble(AnalysisModule.DailySummary::getTotalCarbs).sum();
-        double totalFat = summaries.stream().mapToDouble(AnalysisModule.DailySummary::getTotalFat).sum();
+        double totalProtein = 0.0;
+        double totalCarbs = 0.0;
+        double totalFat = 0.0;
+        
+        for (AnalysisModule.DailySummary summary : summaries) {
+            totalProtein += summary.getTotalProtein();
+            totalCarbs += summary.getTotalCarbs();
+            totalFat += summary.getTotalFat();
+        }
 
         if (totalProtein + totalCarbs + totalFat == 0) {
             chartContainer.add(new JLabel("No macronutrient data available.", SwingConstants.CENTER));
         } else {
-            DefaultPieDataset pieDataset = new DefaultPieDataset();
+            DefaultPieDataset<String> pieDataset = new DefaultPieDataset<>();
             String proteinKey = String.format("Protein (%.0fg)", totalProtein);
             String carbsKey = String.format("Carbohydrates (%.0fg)", totalCarbs);
             String fatKey = String.format("Fat (%.0fg)", totalFat);
@@ -186,7 +194,8 @@ public class DailyIntakePanel extends JPanel {
             JFreeChart pieChart = ChartFactory.createPieChart(
                 "Total Macronutrient Breakdown (grams)", pieDataset, true, true, false);
 
-            PiePlot plot = (PiePlot) pieChart.getPlot();
+            @SuppressWarnings("unchecked")
+            PiePlot<String> plot = (PiePlot<String>) pieChart.getPlot();
             plot.setSectionPaint(proteinKey, new Color(79, 129, 189));
             plot.setSectionPaint(carbsKey, new Color(192, 80, 77));
             plot.setSectionPaint(fatKey, new Color(155, 187, 89));
@@ -201,7 +210,7 @@ public class DailyIntakePanel extends JPanel {
     
     public void setProfile(int profileId) {
         tfProfileId.setText(String.valueOf(profileId));
-        loadDailyIntake(null);
+        statusLabel.setText("Profile set to: " + profileId + ". Enter date range and click Load Data.");
     }
 
     
@@ -213,7 +222,7 @@ public class DailyIntakePanel extends JPanel {
                 
             }
             
-            JFrame frame = new JFrame("Daily Intake Panel - UC6 Test");
+            JFrame frame = new JFrame("Daily Intake Panel Test");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             
             DailyIntakePanel panel = new DailyIntakePanel();

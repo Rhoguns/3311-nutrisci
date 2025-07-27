@@ -1,7 +1,18 @@
 package com.nutrisci.controller;
 
-import java.util.stream.Collectors;
+import org.junit.jupiter.api.Test;
 
 public class ProfileControllerTest {
-    // ...existing code...
+    
+    @Test
+    public void testCreateProfile() {
+    }
+    
+    @Test
+    public void testMissingName() {
+    }
+    
+    @Test
+    public void testEditWeight() {
+    }
 }

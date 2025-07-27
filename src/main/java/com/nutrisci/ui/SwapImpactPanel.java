@@ -1,4 +1,3 @@
-
 package com.nutrisci.ui;
 
 import com.nutrisci.dao.DAOFactory;
@@ -10,18 +9,13 @@ import com.nutrisci.service.AnalysisModule;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -36,23 +30,18 @@ public class SwapImpactPanel extends JPanel {
     private SwapEngine swapEngine;
     
     // UI Components
-    private JSpinner dateSpinner;
     private JSpinner startDateSpinner, endDateSpinner;
     private JSpinner singleDateSpinner;
     private JComboBox<SwapRule> swapRuleComboBox;
     private JPanel chartPanel;
     private JTabbedPane tabbedPane;
-    private JLabel uc5ProfileLabel, uc8TsProfileLabel, uc8BaProfileLabel;
+    private JLabel swapProfileLabel, timeSeriesProfileLabel, beforeAfterProfileLabel;
+
+    private NutritionDAO nutritionDao = DAOFactory.getNutritionDAO();
 
     public SwapImpactPanel() {
-        // Initialize components properly
-        this.analysisModule = new AnalysisModule(DAOFactory.getNutritionDAO());
-        this.swapEngine = new SwapEngine(
-            analysisModule,
-            DAOFactory.getNutritionDAO(),
-            DAOFactory.getSwapRuleDAO(),
-            DAOFactory.getMealDAO()
-        );
+        analysisModule = new AnalysisModule(nutritionDao);
+        swapEngine = new SwapEngine(DAOFactory.getSwapRuleDAO(), DAOFactory.getMealDAO());
         
         initializeUI();
         loadSwapRules();
@@ -63,17 +52,17 @@ public class SwapImpactPanel extends JPanel {
         
         tabbedPane = new JTabbedPane();
         
-        // Tab 1: UC5 - Apply Swap Over Time
+        // Tab 1: Apply Swap Over Time
         JPanel applyPanel = createApplyOverTimePanel();
-        tabbedPane.addTab("UC5: Apply Over Time", applyPanel);
+        tabbedPane.addTab("Apply Over Time", applyPanel);
         
-        // Tab 2: UC8 - Time Series Analysis
+        // Tab 2: Time Series Analysis
         JPanel timeSeriesPanel = createTimeSeriesPanel();
-        tabbedPane.addTab("UC8: Time Series", timeSeriesPanel);
+        tabbedPane.addTab("Time Series", timeSeriesPanel);
         
-        // Tab 3: UC8 - Before/After Analysis
+        // Tab 3: Before/After Analysis
         JPanel beforeAfterPanel = createBeforeAfterPanel();
-        tabbedPane.addTab("UC8: Before/After", beforeAfterPanel);
+        tabbedPane.addTab("Before/After", beforeAfterPanel);
         
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -89,8 +78,8 @@ public class SwapImpactPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 0;
         controlPanel.add(new JLabel("Profile ID:"), gbc);
         gbc.gridx = 1;
-        uc5ProfileLabel = new JLabel(String.valueOf(profileId));
-        controlPanel.add(uc5ProfileLabel, gbc);
+        swapProfileLabel = new JLabel(String.valueOf(profileId));
+        controlPanel.add(swapProfileLabel, gbc);
         
         // Swap Rule selection
         gbc.gridx = 0; gbc.gridy = 1;
@@ -148,8 +137,8 @@ public class SwapImpactPanel extends JPanel {
         // Control panel for time series
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controlPanel.add(new JLabel("Profile ID: "));
-        uc8TsProfileLabel = new JLabel(String.valueOf(profileId));
-        controlPanel.add(uc8TsProfileLabel);
+        timeSeriesProfileLabel = new JLabel(String.valueOf(profileId));
+        controlPanel.add(timeSeriesProfileLabel);
         controlPanel.add(Box.createHorizontalStrut(20));
         
         controlPanel.add(new JLabel("Start Date: "));
@@ -183,11 +172,10 @@ public class SwapImpactPanel extends JPanel {
 
     private JPanel createBeforeAfterPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        // Control panel for before/after
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controlPanel.add(new JLabel("Profile ID: "));
-        uc8BaProfileLabel = new JLabel(String.valueOf(profileId));
-        controlPanel.add(uc8BaProfileLabel);
+        beforeAfterProfileLabel = new JLabel(String.valueOf(profileId));
+        controlPanel.add(beforeAfterProfileLabel);
         controlPanel.add(Box.createHorizontalStrut(20));
         
         controlPanel.add(new JLabel("Date: "));
@@ -229,13 +217,11 @@ public class SwapImpactPanel extends JPanel {
                 return;
             }
             
-            // Create line chart dataset
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
             for (Map.Entry<LocalDate, Double> entry : dailyDeltas.entrySet()) {
                 dataset.addValue(entry.getValue(), "Δ-Calories", entry.getKey().toString());
             }
             
-            // Create line chart
             JFreeChart chart = ChartFactory.createLineChart(
                 "Daily Calorie Changes Due to Swaps",
                 "Date",
@@ -279,21 +265,17 @@ public class SwapImpactPanel extends JPanel {
             Map<String, NutrientTotals> results = analysisModule.computeSwapBeforeAfter(profileId, analysisDate);
             
             if (results.isEmpty() || !results.containsKey("before") || !results.containsKey("after")) {
-                // Find the chart panel in the before/after tab
                 JPanel baChartPanel = findChartPanelInTab(parentPanel);
-                if (baChartPanel != null) {
-                    baChartPanel.removeAll();
-                    baChartPanel.add(new JLabel("No swap data found for the selected date.", SwingConstants.CENTER), BorderLayout.CENTER);
-                    baChartPanel.revalidate();
-                    baChartPanel.repaint();
-                }
+                baChartPanel.removeAll();
+                baChartPanel.add(new JLabel("No swap data found for the selected date.", SwingConstants.CENTER), BorderLayout.CENTER);
+                baChartPanel.revalidate();
+                baChartPanel.repaint();
                 return;
             }
             
             NutrientTotals before = results.get("before");
             NutrientTotals after = results.get("after");
             
-            // Create bar chart dataset
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
             dataset.addValue(before.getCalories(), "Before", "Calories");
             dataset.addValue(after.getCalories(), "After", "Calories");
@@ -304,7 +286,6 @@ public class SwapImpactPanel extends JPanel {
             dataset.addValue(before.getFat(), "Before", "Fat (g)");
             dataset.addValue(after.getFat(), "After", "Fat (g)");
             
-            // Create bar chart
             JFreeChart chart = ChartFactory.createBarChart(
                 "Before vs After Swap - " + analysisDate,
                 "Nutrients",
@@ -328,14 +309,12 @@ public class SwapImpactPanel extends JPanel {
             
             // Update chart panel
             JPanel baChartPanel = findChartPanelInTab(parentPanel);
-            if (baChartPanel != null) {
-                baChartPanel.removeAll();
-                ChartPanel cp = new ChartPanel(chart);
-                cp.setPreferredSize(new Dimension(800, 400));
-                baChartPanel.add(cp, BorderLayout.CENTER);
-                baChartPanel.revalidate();
-                baChartPanel.repaint();
-            }
+            baChartPanel.removeAll();
+            ChartPanel cp = new ChartPanel(chart);
+            cp.setPreferredSize(new Dimension(800, 400));
+            baChartPanel.add(cp, BorderLayout.CENTER);
+            baChartPanel.revalidate();
+            baChartPanel.repaint();
             
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error loading before/after analysis: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -365,7 +344,6 @@ public class SwapImpactPanel extends JPanel {
             }
             swapRuleComboBox.setModel(model);
             
-            // Custom renderer to show rule details
             swapRuleComboBox.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -388,16 +366,10 @@ public class SwapImpactPanel extends JPanel {
     }
 
     private void updateProfileLabels() {
-        String newProfileId = String.valueOf(this.profileId);
-        if (uc5ProfileLabel != null) {
-            uc5ProfileLabel.setText(newProfileId);
-        }
-        if (uc8TsProfileLabel != null) {
-            uc8TsProfileLabel.setText(newProfileId);
-        }
-        if (uc8BaProfileLabel != null) {
-            uc8BaProfileLabel.setText(newProfileId);
-        }
+        String profileText = String.valueOf(profileId);
+        swapProfileLabel.setText(profileText);
+        timeSeriesProfileLabel.setText(profileText);  
+        beforeAfterProfileLabel.setText(profileText);
     }
 
     private void applyOverTimeAction() {
@@ -413,33 +385,29 @@ public class SwapImpactPanel extends JPanel {
             LocalDate start = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             LocalDate end = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-            // Apply the swap over time
             int updatedCount = swapEngine.applySwapRuleOverTime(profileId, selectedRule.getId(), start, end);
 
-            // Update results display
             JTextArea resultsArea = findResultsArea();
-            if (resultsArea != null) {
-                resultsArea.setText(String.format(
-                    "✅ SUCCESS: Applied swap rule over time\n\n" +
-                    "Rule Applied: %s → %s\n" +
-                    "Goal: %s\n" +
-                    "Profile ID: %d\n" +
-                    "Date Range: %s to %s\n" +
-                    "Meals Updated: %d\n\n" +
-                    "All meals containing '%s' in the specified date range\n" +
-                    "have been updated to use '%s' instead.\n\n" +
-                    "The changes have been saved to the database.",
-                    selectedRule.getOriginalFood(),
-                    selectedRule.getSuggestedFood(),
-                    selectedRule.getGoal(),
-                    profileId,
-                    start,
-                    end,
-                    updatedCount,
-                    selectedRule.getOriginalFood(),
-                    selectedRule.getSuggestedFood()
-                ));
-            }
+            resultsArea.setText(String.format(
+                "Applied swap rule over time\n\n" +
+                "Rule: %s → %s\n" +
+                "Goal: %s\n" +
+                "Profile ID: %d\n" +
+                "Date Range: %s to %s\n" +
+                "Meals Updated: %d\n\n" +
+                "All meals containing '%s' in the specified date range\n" +
+                "have been updated to use '%s' instead.\n\n" +
+                "The changes have been saved to the database.",
+                selectedRule.getOriginalFood(),
+                selectedRule.getSuggestedFood(),
+                selectedRule.getGoal(),
+                profileId,
+                start,
+                end,
+                updatedCount,
+                selectedRule.getOriginalFood(),
+                selectedRule.getSuggestedFood()
+            ));
 
             JOptionPane.showMessageDialog(this,
                 String.format("Successfully applied swap to %d meals.", updatedCount),
@@ -448,15 +416,13 @@ public class SwapImpactPanel extends JPanel {
 
         } catch (Exception ex) {
             JTextArea resultsArea = findResultsArea();
-            if (resultsArea != null) {
-                resultsArea.setText("❌ ERROR: Failed to apply swap\n\n" +
-                                  "Error: " + ex.getMessage() + "\n\n" +
-                                  "Please check:\n" +
-                                  "- Database connection\n" +
-                                  "- Swap rule exists\n" +
-                                  "- Date range is valid\n" +
-                                  "- Profile has meals in date range");
-            }
+            resultsArea.setText("❌ ERROR: Failed to apply swap\n\n" +
+                              "Error: " + ex.getMessage() + "\n\n" +
+                              "Please check:\n" +
+                              "- Database connection\n" +
+                              "- Swap rule exists\n" +
+                              "- Date range is valid\n" +
+                              "- Profile has meals in date range");
             JOptionPane.showMessageDialog(this,
                 "Error applying swap: " + ex.getMessage(),
                 "Error",
@@ -497,20 +463,6 @@ public class SwapImpactPanel extends JPanel {
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
             
-            JOptionPane.showMessageDialog(frame, 
-                "Test Instructions:\n\n" +
-                "UC5 - Apply Over Time Tab:\n" +
-                "1. Select a swap rule (e.g., Bread → Lettuce wrap)\n" +
-                "2. Set date range: 2025-07-01 to 2025-07-19\n" +
-                "3. Click 'Apply Over Time'\n\n" +
-                "UC8 - Time Series Tab:\n" +
-                "1. Set date range: 2025-07-01 to 2025-07-19\n" +
-                "2. Click 'Load Time Series' for daily Δ-calories\n\n" +
-                "UC8 - Before/After Tab:\n" +
-                "1. Set date: 2025-07-19\n" +
-                "2. Click 'Load Before/After' for nutrient comparison", 
-                "Test Setup", 
-                JOptionPane.INFORMATION_MESSAGE);
         });
     }
 }

@@ -4,7 +4,6 @@ package com.nutrisci.app;
 import com.nutrisci.dao.MySQLNutritionDAO;
 import com.nutrisci.model.Meal;
 import com.nutrisci.service.AnalysisModule;
-import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -21,7 +20,7 @@ public class MealMain {
             System.out.println("Logged at: " + meal.getLoggedAt().format(fmt));
             System.out.println("Ingredients:");
             meal.getIngredients().forEach((name, qty) -> {
-                PrintStream printStream = System.out.printf("  - %s: %.1fg%n", name, qty);
+                System.out.printf("  - %s: %.1fg%n", name, qty);
             });
             MySQLNutritionDAO nutritionDao = new MySQLNutritionDAO();
             AnalysisModule analysis = new AnalysisModule(nutritionDao);

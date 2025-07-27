@@ -1,7 +1,18 @@
 package com.nutrisci.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 public class MealControllerTest {
-    // ...existing test code...
+    
+    @Test
+    public void testLogMeal() {
+    }
+    
+    @Test
+    public void testMissingDate() {
+    }
+    
+    @Test
+    public void testUnknownFood() {
+    }
 }

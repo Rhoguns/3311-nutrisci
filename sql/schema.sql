@@ -1,11 +1,8 @@
--- Fixed MySQL version of schema.sql
 
 USE nutrisci;
 
--- Disable foreign key checks to allow table drops
 SET FOREIGN_KEY_CHECKS = 0;
 
--- CNF Food Names table (fixed to match CSV)
 DROP TABLE IF EXISTS cnf_food_name;
 CREATE TABLE cnf_food_name (
   FoodID          INT PRIMARY KEY,
@@ -14,13 +11,12 @@ CREATE TABLE cnf_food_name (
   FoodSourceID    INT,
   FoodDescription TEXT,
   FoodDescriptionF TEXT,
-  DateOfEntry     VARCHAR(20),        -- Fixed: removed FoodDateOfRevision
+  DateOfEntry     VARCHAR(20),        
   DateOfPublication VARCHAR(20),
   CountryCode     VARCHAR(10),
   ScientificName  TEXT
 );
 
--- CNF Nutrient Amount table  
 DROP TABLE IF EXISTS cnf_nutrient_amount;
 CREATE TABLE cnf_nutrient_amount (
   FoodID         INT,
@@ -32,7 +28,6 @@ CREATE TABLE cnf_nutrient_amount (
   PRIMARY KEY (FoodID, NutrientID)
 );
 
--- CNF Food Group table
 DROP TABLE IF EXISTS cnf_food_group;
 CREATE TABLE cnf_food_group (
   FoodGroupID   INT PRIMARY KEY,
@@ -41,11 +36,10 @@ CREATE TABLE cnf_food_group (
   FoodGroupNameF TEXT
 );
 
--- CNF Nutrient Name table (fixed to match CSV)  
 DROP TABLE IF EXISTS cnf_nutrient_name;
 CREATE TABLE cnf_nutrient_name (
   NutrientID    INT PRIMARY KEY,
-  NutrientCode  INT,                  -- Added: missing from original schema
+  NutrientCode  INT,                  
   NutrientSymbol VARCHAR(20),
   NutrientUnit   VARCHAR(20),
   NutrientName   TEXT,
@@ -54,7 +48,6 @@ CREATE TABLE cnf_nutrient_name (
   NutrientDecimals INT
 );
 
--- Application tables
 DROP TABLE IF EXISTS applied_swaps;
 DROP TABLE IF EXISTS meal_ingredients;
 DROP TABLE IF EXISTS meals;
@@ -63,7 +56,7 @@ DROP TABLE IF EXISTS profiles;
 DROP TABLE IF EXISTS nutrient_data;
 DROP TABLE IF EXISTS swap_rules;
 
--- Profiles table
+
 CREATE TABLE profiles (
   id            INT            NOT NULL AUTO_INCREMENT,
   name          VARCHAR(100)   NOT NULL,
@@ -76,7 +69,7 @@ CREATE TABLE profiles (
   PRIMARY KEY (id)
 );
 
--- Meals table
+
 CREATE TABLE meals (
     id INT AUTO_INCREMENT PRIMARY KEY,
     profile_id INT NOT NULL,
@@ -93,7 +86,7 @@ CREATE TABLE meal_ingredients (
     FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
 );
 
--- Exercises table
+
 CREATE TABLE exercises (
   id               INT          NOT NULL AUTO_INCREMENT,
   profile_id       INT          NOT NULL,
@@ -105,7 +98,7 @@ CREATE TABLE exercises (
   FOREIGN KEY (profile_id) REFERENCES profiles(id)
 );
 
--- Nutrient Data table
+
 CREATE TABLE nutrient_data (
   id               INT          NOT NULL AUTO_INCREMENT,
   food_name        VARCHAR(100) NOT NULL,
@@ -119,9 +112,9 @@ CREATE TABLE nutrient_data (
   UNIQUE KEY uniq_food_name (food_name)
 );
 
--- Swap Rules table
+
 CREATE TABLE swap_rules (
-    id               INT AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     goal             VARCHAR(50)    NOT NULL,
     original_food    VARCHAR(200)   NOT NULL,
     suggested_food   VARCHAR(200)   NOT NULL,
@@ -131,7 +124,7 @@ CREATE TABLE swap_rules (
     INDEX idx_original (original_food)
 );
 
--- Applied Swaps table
+
 CREATE TABLE applied_swaps (
     id INT AUTO_INCREMENT PRIMARY KEY,
     original_meal_id INT NOT NULL,
@@ -146,5 +139,5 @@ CREATE TABLE applied_swaps (
     FOREIGN KEY (swap_rule_id) REFERENCES swap_rules(id)
 );
 
--- Re-enable foreign key checks
+
 SET FOREIGN_KEY_CHECKS = 1;

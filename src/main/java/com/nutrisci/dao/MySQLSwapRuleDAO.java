@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.dao;
 
 import com.nutrisci.connector.DatabaseConnector;
@@ -14,20 +11,12 @@ public class MySQLSwapRuleDAO implements SwapRuleDAO {
     @Override
     public List<SwapRule> findAll() throws SQLException {
         List<SwapRule> rules = new ArrayList<>();
-        String sql = "SELECT * FROM swap_rules";
-        
+        String sql = "SELECT id, goal, original_food, suggested_food, improvement_value, created_at FROM swap_rules";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            
             while (rs.next()) {
-                SwapRule rule = new SwapRule();
-                rule.setId(rs.getInt("id"));
-                rule.setOriginalFood(rs.getString("original_food"));
-                // FIX: Use the correct column name 'suggested_food'
-                rule.setSuggestedFood(rs.getString("suggested_food")); 
-                rule.setGoal(rs.getString("goal"));
-                rules.add(rule);
+                rules.add(mapResultSetToSwapRule(rs));
             }
         }
         return rules;
@@ -35,21 +24,13 @@ public class MySQLSwapRuleDAO implements SwapRuleDAO {
 
     @Override
     public SwapRule findById(int id) throws SQLException {
-        String sql = "SELECT * FROM swap_rules WHERE id = ?";
-        
+        String sql = "SELECT id, goal, original_food, suggested_food, improvement_value, created_at FROM swap_rules WHERE id = ?";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    SwapRule rule = new SwapRule();
-                    rule.setId(rs.getInt("id"));
-                    rule.setOriginalFood(rs.getString("original_food"));
-                    // FIX: Use the correct column name 'suggested_food'
-                    rule.setSuggestedFood(rs.getString("suggested_food"));
-                    rule.setGoal(rs.getString("goal"));
-                    return rule;
+                    return mapResultSetToSwapRule(rs);
                 }
             }
         }
@@ -59,21 +40,13 @@ public class MySQLSwapRuleDAO implements SwapRuleDAO {
     @Override
     public List<SwapRule> findByGoal(String goal) throws SQLException {
         List<SwapRule> rules = new ArrayList<>();
-        String sql = "SELECT * FROM swap_rules WHERE goal = ?";
-        
+        String sql = "SELECT id, goal, original_food, suggested_food, improvement_value, created_at FROM swap_rules WHERE goal = ?";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            
             ps.setString(1, goal);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    SwapRule rule = new SwapRule();
-                    rule.setId(rs.getInt("id"));
-                    rule.setOriginalFood(rs.getString("original_food"));
-                    // FIX: Use the correct column name 'suggested_food'
-                    rule.setSuggestedFood(rs.getString("suggested_food"));
-                    rule.setGoal(rs.getString("goal"));
-                    rules.add(rule);
+                    rules.add(mapResultSetToSwapRule(rs));
                 }
             }
         }
@@ -82,28 +55,32 @@ public class MySQLSwapRuleDAO implements SwapRuleDAO {
 
     @Override
     public void insert(SwapRule swapRule) throws SQLException {
-        String sql = "INSERT INTO swap_rules (original_food, replacement_food, goal) VALUES (?, ?, ?)";
-        
+        String sql = "INSERT INTO swap_rules (goal, original_food, suggested_food, improvement_value) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            ps.setString(1, swapRule.getOriginalFood());
-            // FIX: Use the correct column name 'suggested_food'
-            ps.setString(2, swapRule.getSuggestedFood());
-            ps.setString(3, swapRule.getGoal());
+            ps.setString(1, swapRule.getGoal());
+            ps.setString(2, swapRule.getOriginalFood());
+            ps.setString(3, swapRule.getSuggestedFood());
+            ps.setDouble(4, swapRule.getImprovementValue());
             
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Creating swap rule failed, no rows affected.");
-            }
+            ps.executeUpdate();
 
             try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     swapRule.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating swap rule failed, no ID obtained.");
                 }
             }
         }
+    }
+
+    private SwapRule mapResultSetToSwapRule(ResultSet rs) throws SQLException {
+        SwapRule rule = new SwapRule();
+        rule.setId(rs.getInt("id"));
+        rule.setGoal(rs.getString("goal"));
+        rule.setOriginalFood(rs.getString("original_food"));
+        rule.setSuggestedFood(rs.getString("suggested_food"));
+        rule.setImprovementValue(rs.getDouble("improvement_value"));
+        return rule;
     }
 }

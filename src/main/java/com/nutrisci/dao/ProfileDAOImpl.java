@@ -3,8 +3,8 @@
  */
 package com.nutrisci.dao;
 
-import com.nutrisci.model.Profile;
 import com.nutrisci.connector.DatabaseConnector;
+import com.nutrisci.model.Profile;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,13 +12,15 @@ import java.util.Optional;
 
 public class ProfileDAOImpl
 implements ProfileDAO {
+    private static final String SELECT_COLUMNS = "id, name, sex, date_of_birth, height_cm, weight_kg, unit, email";
+
     @Override
     public Profile save(Profile profile) throws SQLException {
-        if (profile.getId() == 0) {
-            return this.insert(profile);
+        if (profile.getId() > 0) {
+            this.update(profile);
+            return profile;
         }
-        this.update(profile);
-        return profile;
+        return this.insert(profile);
     }
 
     @Override
@@ -32,19 +34,40 @@ implements ProfileDAO {
             ps.setDouble(5, profile.getWeightKg());
             ps.setString(6, profile.getUnit());
             ps.setString(7, profile.getEmail());
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Creating profile failed, no rows affected.");
-            }
-            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    profile.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating profile failed, no ID obtained.");
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    profile.setId(rs.getInt(1));
                 }
             }
         }
         return profile;
+    }
+
+    @Override
+    public Optional<Profile> findById(int id) throws SQLException {
+        String sql = "SELECT " + SELECT_COLUMNS + " FROM profiles WHERE id = ?";
+        try (Connection conn = DatabaseConnector.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(this.mapResultSetToProfile(rs));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public List<Profile> findAll() throws SQLException {
+        List<Profile> profiles = new ArrayList<Profile>();
+        String sql = "SELECT " + SELECT_COLUMNS + " FROM profiles";
+        try (Connection conn = DatabaseConnector.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                profiles.add(this.mapResultSetToProfile(rs));
+            }
+        }
+        return profiles;
     }
 
     @Override
@@ -59,38 +82,8 @@ implements ProfileDAO {
             ps.setString(6, profile.getUnit());
             ps.setString(7, profile.getEmail());
             ps.setInt(8, profile.getId());
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Updating profile failed, profile not found.");
-            }
+            ps.executeUpdate();
         }
-    }
-
-    @Override
-    public Optional<Profile> findById(int id) throws SQLException {
-        String sql = "SELECT * FROM profiles WHERE id = ?";
-        try (Connection conn = DatabaseConnector.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Profile profile = this.mapRowToProfile(rs);
-                    return Optional.of(profile);
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public List<Profile> findAll() throws SQLException {
-        List<Profile> profiles = new ArrayList<Profile>();
-        String sql = "SELECT * FROM profiles";
-        try (Connection conn = DatabaseConnector.getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                profiles.add(this.mapRowToProfile(rs));
-            }
-        }
-        return profiles;
     }
 
     @Override
@@ -98,14 +91,11 @@ implements ProfileDAO {
         String sql = "DELETE FROM profiles WHERE id = ?";
         try (Connection conn = DatabaseConnector.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Deleting profile failed, profile not found.");
-            }
+            ps.executeUpdate();
         }
     }
 
-    private Profile mapRowToProfile(ResultSet rs) throws SQLException {
+    private Profile mapResultSetToProfile(ResultSet rs) throws SQLException {
         Profile profile = new Profile();
         profile.setId(rs.getInt("id"));
         profile.setName(rs.getString("name"));

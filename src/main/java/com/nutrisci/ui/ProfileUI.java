@@ -1,169 +1,249 @@
 package com.nutrisci.ui;
 
 import com.nutrisci.controller.ProfileController;
-import com.nutrisci.dao.ProfileDAO;
 import com.nutrisci.dao.ProfileDAOImpl;
 import com.nutrisci.model.Profile;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 public class ProfileUI extends JPanel {
-    private Profile currentProfile; // This field should already exist
-    private int profileId = 1; // Default profile
+    private Profile currentProfile;
 
-    private final JTextField tfName       = new JTextField();
-    private final JComboBox<String> cbSex = new JComboBox<>(new String[]{"M", "F", "Other"});
-    private final JTextField tfDob        = new JTextField("yyyy-MM-dd");
-    private final JTextField tfHeight     = new JTextField();
-    private final JTextField tfWeight     = new JTextField();
-    private final JComboBox<String> cbUnit = new JComboBox<>(new String[]{"metric", "imperial"});
-    private final JButton btnSave         = new JButton("Save");
-    private final JButton btnLoad         = new JButton("Load");
+    private JTextField tfName = new JTextField(20);
+    private JComboBox<String> cbSex = new JComboBox<>(new String[]{"M", "F", "Other"});
+    private JTextField tfDob = new JTextField("", 15);
+    private JTextField tfHeight = new JTextField("", 10);
+    private JTextField tfWeight = new JTextField("", 10);
+    private JButton btnSave = new JButton("Save Profile");
+    private JButton btnLoad = new JButton("Load Profile");
+    private JButton btnNew = new JButton("New Profile");
+    private JLabel statusLabel = new JLabel("Ready");
 
-    private final ProfileController controller;
+    private ProfileController controller;
+    private boolean isNewProfile = false;
 
     public ProfileUI(ProfileController controller) {
         this.controller = controller;
         initComponents();
     }
 
+    private void initComponents() {
+        setLayout(new BorderLayout());
+        setBorder(BorderFactory.createTitledBorder("Create/Edit Profile"));
+        
+        // Title
+        JLabel titleLabel = new JLabel("Profile Management", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        add(titleLabel, BorderLayout.NORTH);
+        
+        // Main form panel
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        
+        // Profile Name
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("Name:"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(tfName, gbc);
+        
+        // Sex
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(new JLabel("Sex:"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(cbSex, gbc);
+        
+        // Date of Birth
+        gbc.gridx = 0; gbc.gridy = 2;
+        formPanel.add(new JLabel("Date of Birth (yyyy-mm-dd):"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(tfDob, gbc);
+        
+        // Height
+        gbc.gridx = 0; gbc.gridy = 3;
+        formPanel.add(new JLabel("Height (cm):"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(tfHeight, gbc);
+        
+        // Weight
+        gbc.gridx = 0; gbc.gridy = 4;
+        formPanel.add(new JLabel("Weight (kg):"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(tfWeight, gbc);
+        add(formPanel, BorderLayout.CENTER);
+        
+        // Status panel
+        JPanel statusPanel = new JPanel(new FlowLayout());
+        statusPanel.add(statusLabel);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        // Save button
+        btnSave.addActionListener(this::onSaveProfile);
+        buttonPanel.add(btnSave);
+        
+        // Load button
+        btnLoad.addActionListener(this::onLoadProfile);
+        buttonPanel.add(btnLoad);
+        buttonPanel.add(btnNew);
+        
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.add(statusPanel, BorderLayout.NORTH);
+        southPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        add(southPanel, BorderLayout.SOUTH);
+        // New Profile button
+        btnNew.addActionListener(this::onNewProfile);
+        buttonPanel.add(btnNew);
+        
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void onSaveProfile(ActionEvent e) {
+        try {
+            Profile profile = new Profile();
+            profile.setName(tfName.getText().trim());
+            profile.setSex((String) cbSex.getSelectedItem());
+            profile.setDateOfBirth(LocalDate.parse(tfDob.getText().trim()));
+            profile.setHeightCm(Double.parseDouble(tfHeight.getText().trim()));
+            profile.setWeightKg(Double.parseDouble(tfWeight.getText().trim()));
+            
+            // Set default values for removed fields
+            profile.setUnit("metric");  // Default to metric
+            profile.setEmail(null);     // No email field
+
+            Profile savedProfile;
+            if (isNewProfile || currentProfile == null) {
+                savedProfile = controller.createProfile(profile);
+                isNewProfile = false;
+                currentProfile = savedProfile;
+                
+                // Expected popup: "Profile saved with ID: X"
+                JOptionPane.showMessageDialog(this, 
+                    "Profile saved with ID: " + savedProfile.getId(), 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                    
+                // Update the profile ID for other components
+                setProfile(savedProfile.getId());
+                
+            } else {
+                // Update existing profile
+                profile.setId(currentProfile.getId());
+                controller.updateProfile(profile);
+                currentProfile = profile;
+                
+                JOptionPane.showMessageDialog(this, 
+                    "Profile updated successfully!\nProfile ID: " + profile.getId(), 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Invalid date format. Please use yyyy-mm-dd", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Invalid number format for height or weight", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error saving profile: " + ex.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+
+    private void onLoadProfile(ActionEvent e) {
+        String input = JOptionPane.showInputDialog(this, "Enter Profile ID to load:");
+        if (input != null && !input.trim().isEmpty()) {
+            try {
+                int id = Integer.parseInt(input.trim());
+                Optional<Profile> profileOpt = controller.getProfile(id);
+                if (profileOpt.isPresent()) {
+                    setCurrentProfile(profileOpt.get());
+                    isNewProfile = false;
+                    JOptionPane.showMessageDialog(this, "Profile loaded successfully!");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Profile not found with ID: " + id, "Not Found", JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Invalid Profile ID", "Error", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error loading profile: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void onNewProfile(ActionEvent e) {
+        // Clear form for new profile - REMOVED default "TestUser" data
+        tfName.setText("");
+        cbSex.setSelectedItem("M");
+        tfDob.setText("");
+        tfHeight.setText("");
+        tfWeight.setText("");
+        
+        currentProfile = null;
+        isNewProfile = true;
+        
+        // Popup message removed - just update status
+        statusLabel.setText("Ready to create new profile. Fill in details and click Save.");
+    }
+
     public void setCurrentProfile(Profile profile) {
         this.currentProfile = profile;
+        isNewProfile = false;
+        
         // Update UI fields to reflect the loaded profile's data
         tfName.setText(profile.getName());
         cbSex.setSelectedItem(profile.getSex());
         tfDob.setText(profile.getDateOfBirth().toString());
         tfHeight.setText(String.valueOf(profile.getHeightCm()));
         tfWeight.setText(String.valueOf(profile.getWeightKg()));
-        cbUnit.setSelectedItem(profile.getUnit());
-    }
-
-    private void initComponents() {
-        setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("UC4: Profile Management"));
-        
-        JLabel titleLabel = new JLabel("Profile Management Interface", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        add(titleLabel, BorderLayout.NORTH);
-        
-        JPanel controlPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        
-        // Current Profile ID display
-        gbc.gridx = 0; gbc.gridy = 0;
-        controlPanel.add(new JLabel("Current Profile ID:"), gbc);
-        gbc.gridx = 1;
-        JLabel profileLabel = new JLabel(String.valueOf(profileId));
-        controlPanel.add(profileLabel, gbc);
-        
-        // Profile Name
-        gbc.gridx = 0; gbc.gridy = 1;
-        controlPanel.add(new JLabel("Profile Name:"), gbc);
-        gbc.gridx = 1;
-        JTextField nameField = new JTextField("User " + profileId, 20);
-        controlPanel.add(nameField, gbc);
-        
-        // Age
-        gbc.gridx = 0; gbc.gridy = 2;
-        controlPanel.add(new JLabel("Age:"), gbc);
-        gbc.gridx = 1;
-        JSpinner ageSpinner = new JSpinner(new SpinnerNumberModel(25, 1, 120, 1));
-        controlPanel.add(ageSpinner, gbc);
-        
-        // Weight
-        gbc.gridx = 0; gbc.gridy = 3;
-        controlPanel.add(new JLabel("Weight (kg):"), gbc);
-        gbc.gridx = 1;
-        JSpinner weightSpinner = new JSpinner(new SpinnerNumberModel(70.0, 30.0, 300.0, 0.1));
-        controlPanel.add(weightSpinner, gbc);
-        
-        // Height
-        gbc.gridx = 0; gbc.gridy = 4;
-        controlPanel.add(new JLabel("Height (cm):"), gbc);
-        gbc.gridx = 1;
-        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(175, 100, 250, 1));
-        controlPanel.add(heightSpinner, gbc);
-        
-        // Update button
-        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2;
-        JButton updateButton = new JButton("Update Profile");
-        updateButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, 
-                "Profile updated successfully!\n" +
-                "Profile ID: " + profileId + "\n" +
-                "Name: " + nameField.getText() + "\n" +
-                "Age: " + ageSpinner.getValue() + "\n" +
-                "Weight: " + weightSpinner.getValue() + " kg\n" +
-                "Height: " + heightSpinner.getValue() + " cm", 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-        });
-        controlPanel.add(updateButton, gbc);
-        
-        add(controlPanel, BorderLayout.CENTER);
-        
-        // Status area
-        JTextArea statusArea = new JTextArea(3, 50);
-        statusArea.setEditable(false);
-        statusArea.setText("Managing profile for Profile ID: " + profileId);
-        statusArea.setBackground(getBackground());
-        add(statusArea, BorderLayout.SOUTH);
+        // Unit and email removed from UI
     }
 
     public void setProfile(int profileId) {
-        this.profileId = profileId;
-        updateProfileInComponents(this, profileId);
-        // Update status area
-        updateStatusArea();
-    }
-
-    private void updateStatusArea() {
-        Component[] components = getComponents();
-        for (Component comp : components) {
-            if (comp instanceof JTextArea) {
-                JTextArea statusArea = (JTextArea) comp;
-                if (statusArea.getText().contains("Managing profile")) {
-                    statusArea.setText("Managing profile for Profile ID: " + profileId);
-                }
+        statusLabel.setText("Profile set to: " + profileId);
+        
+        try {
+            Optional<Profile> profile = controller.getProfile(profileId);
+            if (profile.isPresent()) {
+                setCurrentProfile(profile.get());
+                statusLabel.setText("Loaded profile: " + profile.get().getName());
+            } else {
+                statusLabel.setText("Profile " + profileId + " not found. Create a new profile.");
             }
+        } catch (Exception e) {
+            statusLabel.setText("Error loading profile: " + e.getMessage());
         }
     }
 
-    private void updateProfileInComponents(Container container, int newProfileId) {
-        for (Component comp : container.getComponents()) {
-            if (comp instanceof JLabel) {
-                JLabel label = (JLabel) comp;
-                if (label.getText().matches("\\d+")) {
-                    label.setText(String.valueOf(newProfileId));
-                }
-            } else if (comp instanceof JTextField) {
-                JTextField field = (JTextField) comp;
-                if (field.getText().startsWith("User ")) {
-                    field.setText("User " + newProfileId);
-                }
-            } else if (comp instanceof Container) {
-                updateProfileInComponents((Container) comp, newProfileId);
-            }
-        }
+    // Method used by MainDashboard to set profile ID from other components
+    public void updateProfileId(int newProfileId) {
+        setProfile(newProfileId);
     }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Profile UI Test");
-            // FIX: Correctly instantiate the controller with the implementation class (ProfileDAOImpl)
-            // and remove the duplicate variable declaration.
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            
             ProfileController controller = new ProfileController(new ProfileDAOImpl());
             ProfileUI profileUI = new ProfileUI(controller);
-            profileUI.setProfile(1);
+            
             frame.add(profileUI);
-            frame.setSize(600, 400);
+            frame.setSize(500, 400);
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });

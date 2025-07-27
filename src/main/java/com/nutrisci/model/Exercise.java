@@ -10,12 +10,12 @@ public class Exercise {
     private int id;
     private int profileId;
     private String name;
-    private String exerciseType;  // Add this field
+    private String exerciseType;
     private double durationMinutes;
-    private int duration;  // Add this field for integer duration
+    private int duration;
     private double caloriesBurned;
     private LocalDateTime performedAt;
-    private LocalDate date;  // Add this field
+    private LocalDate date;
 
     public Exercise() {
     }
@@ -76,7 +76,7 @@ public class Exercise {
         this.performedAt = performedAt;
     }
 
-    // Add missing methods for tests
+    // Missing methods for tests
     public String getExerciseType() {
         return this.exerciseType;
     }

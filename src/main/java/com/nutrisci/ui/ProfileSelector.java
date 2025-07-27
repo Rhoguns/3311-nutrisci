@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.ui;
 
 import com.nutrisci.controller.ProfileController;
@@ -26,14 +23,14 @@ import javax.swing.SwingUtilities;
 
 public class ProfileSelector
 extends JFrame {
-    private final ProfileDAO profileDao = DAOFactory.getProfileDAO();
-    private final JComboBox<Profile> cbProfiles = new JComboBox();
-    private final JButton btnNew = new JButton("New Profile");
-    private final JButton btnSelect = new JButton("Select");
-    private final DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private ProfileDAO profileDao = DAOFactory.getProfileDAO();
+    private JComboBox<Profile> cbProfiles = new JComboBox<>();
+    private JButton btnNew = new JButton("New Profile");
+    private JButton btnSelect = new JButton("Select");
+    private DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public ProfileSelector() {
-        super("NutriSci \u2013 Select Profile");
+        super("NutriSci – Select Profile");
         this.setDefaultCloseOperation(3);
         this.setLayout(new BorderLayout(10, 10));
         this.add((Component)new JLabel("Choose an existing profile or create a new one:", 0), "North");

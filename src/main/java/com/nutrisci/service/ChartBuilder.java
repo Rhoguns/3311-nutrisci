@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.service;
 
 import com.nutrisci.model.Meal;

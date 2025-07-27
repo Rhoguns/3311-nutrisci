@@ -1,7 +1,0 @@
-package com.nutrisci.controller;
-
-import java.util.stream.Collectors;
-
-public class NutritionControllerTest {
-    // ...existing code...
-}

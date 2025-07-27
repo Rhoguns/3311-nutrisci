@@ -7,19 +7,14 @@ import java.sql.*;
 public class CNFImporter {
     public static void main(String[] args) {
         try {
-            // Don't clear existing data since we have partial imports
-            // clearExistingData();
-            
+            clearExistingData();
             importFoodNames();
-            // Skip nutrient amounts since we already have 290,000+ records
-            // importNutrientAmounts(); 
             importFoodGroups();
             importNutrientNames();
-            
+            importNutrientAmounts();
             testImport();
-            
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception err) {
+            System.err.println("Import failed: " + err.getMessage());
         }
     }
     
@@ -180,43 +175,43 @@ public class CNFImporter {
             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM cnf_food_name");
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Food Names imported: " + rs.getInt(1)); // Add output
+                System.out.println("Food Names imported: " + rs.getInt(1));
             }
             
             ps = conn.prepareStatement("SELECT COUNT(*) FROM cnf_nutrient_amount");
             rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Nutrient Amounts imported: " + rs.getInt(1)); // Add output
+                System.out.println("Nutrient Amounts imported: " + rs.getInt(1));
             }
             
             ps = conn.prepareStatement("SELECT COUNT(*) FROM cnf_food_group");
             rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Food Groups imported: " + rs.getInt(1)); // Add output
+                System.out.println("Food Groups imported: " + rs.getInt(1));
             }
             
             ps = conn.prepareStatement("SELECT COUNT(*) FROM cnf_nutrient_name");
             rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Nutrient Names imported: " + rs.getInt(1)); // Add output
+                System.out.println("Nutrient Names imported: " + rs.getInt(1));
             }
             
             ps = conn.prepareStatement("SELECT FoodDescription FROM cnf_food_name WHERE FoodDescription LIKE '%apple%' LIMIT 1");
             rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Sample food: " + rs.getString(1)); // Add output
+                System.out.println("Sample food: " + rs.getString(1));
             }
             
             ps = conn.prepareStatement("SELECT FoodGroupName FROM cnf_food_group LIMIT 1");
             rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Sample food group: " + rs.getString(1)); // Add output
+                System.out.println("Sample food group: " + rs.getString(1));
             }
             
             ps = conn.prepareStatement("SELECT NutrientName FROM cnf_nutrient_name WHERE NutrientSymbol = 'ENERC' LIMIT 1");
-            rs = ps.executeQuery(); // Fix: remove duplicate assignment
+            rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Sample nutrient: " + rs.getString(1)); // Add output
+                System.out.println("Sample nutrient: " + rs.getString(1));
             }
         }
     }

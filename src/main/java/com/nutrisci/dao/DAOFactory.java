@@ -1,20 +1,4 @@
-
 package com.nutrisci.dao;
-
-import com.nutrisci.dao.ExerciseDAO;
-import com.nutrisci.dao.InMemoryExerciseDAO;
-import com.nutrisci.dao.MealDAO;
-import com.nutrisci.dao.MySQLMealDAO;
-import com.nutrisci.dao.MySQLNutritionDAO;
-import com.nutrisci.dao.NutritionDAO;
-import com.nutrisci.dao.ProfileDAO;
-import com.nutrisci.dao.SwapRuleDAO;
-import com.nutrisci.model.SwapRule;
-
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DAOFactory {
     public static MealDAO getMealDAO() {
@@ -26,17 +10,17 @@ public class DAOFactory {
     }
 
     public static ProfileDAO getProfileDAO() {
-        return new MySQLProfileDAO();
+        return new ProfileDAOImpl();  
+    }
+
+    public static ExerciseDAO getExerciseDAO() {
+        return new MySQLExerciseDAO();  
     }
 
     public static SwapRuleDAO getSwapRuleDAO() {
         return new MySQLSwapRuleDAO();
     }
-
-    public static ExerciseDAO getExerciseDAO() {
-        return new InMemoryExerciseDAO();
-    }
-
-    private DAOFactory() {
+    public static AppliedSwapDAO getAppliedSwapDAO() {
+        return new MySQLAppliedSwapDAO();
     }
 }

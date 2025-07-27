@@ -13,14 +13,13 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.List;
 
 
 public class ComparisonPanel extends JPanel {
-    private final Meal meal1;
-    private final Meal meal2;
-    private final NutritionDAO nutritionDao = DAOFactory.getNutritionDAO();
-    private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private Meal meal1;
+    private Meal meal2;
+    private NutritionDAO nutritionDao = DAOFactory.getNutritionDAO();
+    private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public ComparisonPanel(Meal meal1, Meal meal2) {
         this.meal1 = meal1;
@@ -32,15 +31,12 @@ public class ComparisonPanel extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        
         JPanel headerPanel = createMealHeaders();
         add(headerPanel, BorderLayout.NORTH);
 
-        
         JPanel comparisonPanel = createComparisonTable();
         add(comparisonPanel, BorderLayout.CENTER);
 
-        
         JPanel summaryPanel = createSummaryPanel();
         add(summaryPanel, BorderLayout.SOUTH);
     }
@@ -106,8 +102,15 @@ public class ComparisonPanel extends JPanel {
 
         
         for (String ingredient : allIngredients) {
-            double amount1 = meal1.getIngredients().getOrDefault(ingredient, 0.0);
-            double amount2 = meal2.getIngredients().getOrDefault(ingredient, 0.0);
+            double amount1 = 0.0;
+            if (meal1.getIngredients().containsKey(ingredient)) {
+                amount1 = meal1.getIngredients().get(ingredient);
+            }
+            
+            double amount2 = 0.0;
+            if (meal2.getIngredients().containsKey(ingredient)) {
+                amount2 = meal2.getIngredients().get(ingredient);
+            }
             double difference = amount2 - amount1;
             
             String status;
@@ -254,30 +257,21 @@ public class ComparisonPanel extends JPanel {
     private double calculateTotalCalories(Meal meal) throws SQLException {
         double total = 0;
         for (Map.Entry<String, Double> entry : meal.getIngredients().entrySet()) {
-            double caloriesPerGram = nutritionDao.getCaloriesPerGram(entry.getKey());
+            double caloriesPerGram = nutritionDao.getNutrientInfo(entry.getKey()).getCaloriesPerGram();
             total += caloriesPerGram * entry.getValue();
         }
         return total;
     }
 
     private double getTotalWeight(Meal meal) {
-        return meal.getIngredients().values().stream().mapToDouble(Double::doubleValue).sum();
-    }
-
-    private String getTooltipForFood(String foodName) {
-        try {
-            double caloriesPerGram = this.nutritionDao.getCaloriesPerGram(foodName);
-            return String.format("%.2f kcal/g", caloriesPerGram);
-        } catch (SQLException e) {
-            return "No data";
+        double total = 0.0;
+        for (Double value : meal.getIngredients().values()) {
+            total += value;
         }
+        return total;
     }
 
-    /**
-     * Main method to run this panel as a standalone application for testing.
-     */
-    public static void main(String[] args) {
-        // Create sample meals for demonstration purposes
+       public static void main(String[] args) {
         Meal meal1 = new Meal("Original Lunch", LocalDateTime.now().minusHours(1));
         meal1.setId(101);
         meal1.getIngredients().put("Chicken breast", 150.0);
@@ -291,8 +285,7 @@ public class ComparisonPanel extends JPanel {
         meal2.getIngredients().put("Broccoli", 100.0);
         meal2.getIngredients().put("Olive oil", 10.0);      // Added ingredient
 
-        // Run the UI creation on the Event Dispatch Thread for thread safety
-        SwingUtilities.invokeLater(() -> {
+         SwingUtilities.invokeLater(() -> {
             try {
                 // Use a modern look and feel
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

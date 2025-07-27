@@ -1,9 +1,5 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.dao;
 
-import com.nutrisci.dao.ExerciseDAO;
 import com.nutrisci.model.Exercise;
 import java.sql.SQLException;
 import java.util.List;

@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+    <title>NutriSci Nutrition Tracking Application</title>
+</head>
+<body>
+    <h1>NutriSci Nutrition Tracking Application</h1>
+    
+    <h2>Overview</h2>
+    <p>
+        NutriSci is a comprehensive nutrition tracking application that helps users monitor their daily food intake,
+        exercise activities, and nutritional goals. The application provides detailed analysis of macronutrients,
+        meal comparisons, food swapping recommendations, and compliance with the Canada Food Guide.
+    </p>
+    
+    <h2>Main Features</h2>
+    <ul>
+        <li><strong>Profile Management</strong> - Create and manage user profiles with personal information</li>
+        <li><strong>Meal Logging</strong> - Track daily meals with detailed ingredient information</li>
+        <li><strong>Exercise Tracking</strong> - Log physical activities and calorie expenditure</li>
+        <li><strong>Nutritional Analysis</strong> - Analyze daily intake and generate reports</li>
+        <li><strong>Meal Comparison</strong> - Compare nutritional content between different meals</li>
+        <li><strong>Food Swapping</strong> - Get recommendations for healthier food alternatives</li>
+        <li><strong>CFG Compliance</strong> - Monitor adherence to Canada Food Guide recommendations</li>
+        <li><strong>Data Visualization</strong> - Generate charts and graphs for nutritional insights</li>
+    </ul>
+    
+    <h2>Package Structure</h2>
+    <dl>
+        <dt><code>com.nutrisci.app</code></dt>
+        <dd>Main application entry points and demo classes</dd>
+        
+        <dt><code>com.nutrisci.connector</code></dt>
+        <dd>Database connection utilities</dd>
+        
+        <dt><code>com.nutrisci.controller</code></dt>
+        <dd>MVC controllers for handling business logic</dd>
+        
+        <dt><code>com.nutrisci.dao</code></dt>
+        <dd>Data Access Objects for database operations</dd>
+        
+        <dt><code>com.nutrisci.info</code></dt>
+        <dd>Data transfer objects for nutrition information</dd>
+        
+        <dt><code>com.nutrisci.logic</code></dt>
+        <dd>Business logic for food swapping and recommendations</dd>
+        
+        <dt><code>com.nutrisci.model</code></dt>
+        <dd>Data model classes representing core entities</dd>
+        
+        <dt><code>com.nutrisci.service</code></dt>
+        <dd>Service layer for analysis and chart generation</dd>
+        
+        <dt><code>com.nutrisci.ui</code></dt>
+        <dd>User interface components using Swing</dd>
+        
+        <dt><code>com.nutrisci.util</code></dt>
+        <dd>Utility classes for data import and testing</dd>
+        
+        <dt><code>com.nutrisci.view</code></dt>
+        <dd>View components for data visualization</dd>
+    </dl>
+    
+    <h2>Technology Stack</h2>
+    <ul>
+        <li><strong>Java 11+</strong> - Core programming language</li>
+        <li><strong>Swing</strong> - GUI framework</li>
+        <li><strong>MySQL</strong> - Database system</li>
+        <li><strong>JFreeChart</strong> - Chart generation library</li>
+        <li><strong>JUnit 5</strong> - Testing framework</li>
+        <li><strong>Mockito</strong> - Mocking framework for tests</li>
+        <li><strong>Maven</strong> - Build and dependency management</li>
+    </ul>
+    
+    <h2>Getting Started</h2>
+    <p>
+        To use the NutriSci application:
+    </p>
+    <ol>
+        <li>Run the main application from <code>com.nutrisci.app.MealMain</code> or <code>com.nutrisci.app.ProfileMain</code></li>
+        <li>Create a user profile with your personal information</li>
+        <li>Start logging meals and exercises</li>
+        <li>Use the analysis features to track your nutritional progress</li>
+    </ol>
+    
+    <h2>Test Coverage</h2>
+    <p>
+        The application includes comprehensive test coverage with Test-Driven Development (TDD) approach,
+        covering test cases TC01-TC12 for all major functionality including profile management,
+        meal logging, exercise tracking, and nutritional analysis.
+    </p>
+</body>
+</html>

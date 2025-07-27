@@ -1,12 +1,9 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.ui;
 
 import com.nutrisci.dao.DAOFactory;
+import com.nutrisci.dao.MealDAO;
+import com.nutrisci.dao.SwapRuleDAO;
 import com.nutrisci.logic.SwapEngine;
-import com.nutrisci.service.AnalysisModule;
-
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
@@ -21,19 +18,15 @@ extends JPanel {
     private SwapEngine swapEngine;
 
     public BatchSwapPanel() {
-        
-        this.swapEngine = new SwapEngine(
-            new AnalysisModule(DAOFactory.getNutritionDAO()),
-            DAOFactory.getNutritionDAO(),
-            DAOFactory.getSwapRuleDAO(),
-            DAOFactory.getMealDAO()
-        );
+        SwapRuleDAO swapRuleDAO = DAOFactory.getSwapRuleDAO();
+        MealDAO mealDAO = DAOFactory.getMealDAO();
+        this.swapEngine = new SwapEngine(swapRuleDAO, mealDAO);
         this.initializeUI();
     }
 
     private void initializeUI() {
         this.setLayout(new BorderLayout(10, 10));
-        this.setBorder(BorderFactory.createTitledBorder("UC5: Apply Swap Rule Over Time"));
+        this.setBorder(BorderFactory.createTitledBorder("Apply Swap Rule Over Time"));
 
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
         

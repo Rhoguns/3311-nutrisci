@@ -1,0 +1,11 @@
+com.nutrisci.app
+com.nutrisci.connector
+com.nutrisci.controller
+com.nutrisci.dao
+com.nutrisci.info
+com.nutrisci.logic
+com.nutrisci.model
+com.nutrisci.service
+com.nutrisci.ui
+com.nutrisci.util
+com.nutrisci.view

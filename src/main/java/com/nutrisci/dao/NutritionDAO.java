@@ -1,40 +1,20 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package com.nutrisci.dao;
 
-import com.nutrisci.model.Meal;
+import com.nutrisci.info.NutrientInfo;
 import java.sql.SQLException;
-import java.util.Map;
 
+/**
+ * Food nutrition data access.
+ */
 public interface NutritionDAO {
     /**
-     * Calculates nutrient totals for a meal based on its ingredients.
+     * Gets calories per gram.
      */
-    Map<String, Double> calculateMealNutrients(Map<String, Double> ingredients) throws SQLException;
-
-    /**
-     * Gets nutrient totals for a specific meal.
-     */
-    Map<String, Double> getNutrientTotalsForMeal(Meal meal) throws SQLException;
-
-    /**
-     * Gets calories per gram for a specific food item.
-     */
+    @Deprecated
     double getCaloriesPerGram(String foodName) throws SQLException;
 
     /**
-     * Gets nutrient breakdown for a food item.
+     * Gets nutrition info for food.
      */
-    Map<String, Double> getNutrientBreakdown(String foodName) throws SQLException;
-
-    /**
-     * Gets all nutrient information for a food item.
-     */
-    Map<String, Double> getNutrientInfo(String foodName) throws SQLException;
-
-    /**
-     * Gets the food group for a specific food item.
-     */
-    String getFoodGroup(String foodName) throws SQLException;
+    NutrientInfo getNutrientInfo(String foodName) throws SQLException;
 }

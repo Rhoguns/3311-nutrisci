@@ -2,9 +2,9 @@ package com.nutrisci.ui;
 
 import com.nutrisci.dao.DAOFactory;
 import com.nutrisci.dao.MealDAO;
+import com.nutrisci.dao.NutritionDAO;
 import com.nutrisci.dao.NutritionDAOImpl; 
 import com.nutrisci.model.Meal;
-import com.nutrisci.service.AnalysisModule;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,86 +17,81 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MealLoggerUI extends JPanel {
-    private int profileId = 1; 
+    private int profileId;
 
-    private final JTextField tfProfileId   = new JTextField();
-    private final JComboBox<String> cbMealType = new JComboBox<>(
+    private JTextField tfProfileId   = new JTextField();
+    private JComboBox<String> cbMealType = new JComboBox<>(
         new String[]{"Breakfast", "Lunch", "Dinner", "Snack"});
-    private final JTextField tfLoggedAt     = new JTextField();
-    private final JTextArea taIngredients   = new JTextArea(5, 20);
-    private final JButton btnSave           = new JButton("Save");
-    private final JButton btnClear          = new JButton("Clear");
+    private JTextField tfLoggedAt     = new JTextField();
+    private JTextArea taIngredients   = new JTextArea(5, 20);
+    private JButton btnSave           = new JButton("Save");
+    private JButton btnClear          = new JButton("Clear");
 
-    private final MealDAO dao;
-    private final AnalysisModule analysis;
+    private MealDAO dao;
 
     public MealLoggerUI() {
-        this.dao = DAOFactory.getMealDAO(); 
-        this.analysis = new AnalysisModule(new NutritionDAOImpl());
+        dao = DAOFactory.getMealDAO(); 
         initializeUI();
     }
 
     public MealLoggerUI(MealDAO dao) {
         this.dao = dao;
-        this.analysis = new AnalysisModule(new NutritionDAOImpl());
         initializeUI();
     }
-
     private void initializeUI() {
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("UC2: Meal Logger"));
+        setBorder(BorderFactory.createTitledBorder("Meal Logger"));
         
         JLabel titleLabel = new JLabel("Meal Logging Interface", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
         
-        JPanel controlPanel = new JPanel(new GridBagLayout());
+        JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
         
-        // Profile ID display
+        // Profile ID (read-only display)
         gbc.gridx = 0; gbc.gridy = 0;
-        controlPanel.add(new JLabel("Profile ID:"), gbc);
+        formPanel.add(new JLabel("Profile ID:"), gbc);
         gbc.gridx = 1;
-        JLabel profileLabel = new JLabel(String.valueOf(profileId));
-        controlPanel.add(profileLabel, gbc);
+        tfProfileId.setText(profileId > 0 ? String.valueOf(profileId) : "Not Set");
+        tfProfileId.setEditable(false);
+        formPanel.add(tfProfileId, gbc);
         
-        // Meal name input
+        // Meal Type
         gbc.gridx = 0; gbc.gridy = 1;
-        controlPanel.add(new JLabel("Meal Name:"), gbc);
+        formPanel.add(new JLabel("Meal Type:"), gbc);
         gbc.gridx = 1;
-        JTextField mealNameField = new JTextField(20);
-        controlPanel.add(mealNameField, gbc);
+        formPanel.add(cbMealType, gbc);
         
-        // Food items input
+        // Logged At
         gbc.gridx = 0; gbc.gridy = 2;
-        controlPanel.add(new JLabel("Food Items:"), gbc);
+        formPanel.add(new JLabel("Logged At (yyyy-MM-dd HH:mm):"), gbc);
         gbc.gridx = 1;
-        JTextArea foodItemsArea = new JTextArea(5, 20);
-        foodItemsArea.setBorder(BorderFactory.createLoweredBevelBorder());
-        controlPanel.add(new JScrollPane(foodItemsArea), gbc);
+        tfLoggedAt.setText(LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        formPanel.add(tfLoggedAt, gbc);
         
-        // Log button
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
-        JButton logButton = new JButton("Log Meal");
-        logButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, 
-                "Meal logged successfully!\n" +
-                "Profile: " + profileId + "\n" +
-                "Meal: " + mealNameField.getText(), 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-        });
-        controlPanel.add(logButton, gbc);
+        // Ingredients
+        gbc.gridx = 0; gbc.gridy = 3;
+        formPanel.add(new JLabel("Ingredients (name:grams):"), gbc);
+        gbc.gridx = 1;
+        taIngredients.setBorder(BorderFactory.createLoweredBevelBorder());
+        formPanel.add(new JScrollPane(taIngredients), gbc);
         
-        add(controlPanel, BorderLayout.CENTER);
+        add(formPanel, BorderLayout.CENTER);
         
-        // Status area
-        JTextArea statusArea = new JTextArea(3, 50);
-        statusArea.setEditable(false);
-        statusArea.setText("Ready to log meals for Profile " + profileId);
-        statusArea.setBackground(getBackground());
-        add(statusArea, BorderLayout.SOUTH);
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        btnSave.addActionListener(new SaveListener());
+        buttonPanel.add(btnSave);
+        
+        btnClear.addActionListener(e -> clearFields());
+        buttonPanel.add(btnClear);
+        
+        add(buttonPanel, BorderLayout.SOUTH);
     }
 
     private void clearFields() {
@@ -107,107 +102,83 @@ public class MealLoggerUI extends JPanel {
         taIngredients.setText("");
     }
 
+    public void setProfile(int profileId) {
+        if (profileId <= 0) {
+            throw new IllegalArgumentException("Profile ID must be positive");
+        }
+        this.profileId = profileId;
+        tfProfileId.setText(String.valueOf(profileId));
+        
+        updateProfileInComponents(this, profileId);
+    }
+
     private class SaveListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent ev) {
+            if (profileId <= 0) {
+                JOptionPane.showMessageDialog(MealLoggerUI.this, "No profile selected. Please set a profile first.", "Profile Required", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
             try {
                 Meal m = new Meal();
-                m.setProfileId(Integer.parseInt(tfProfileId.getText().trim()));
+                m.setProfileId(profileId);
                 m.setType((String) cbMealType.getSelectedItem());
-                LocalDateTime dt = LocalDateTime.parse(
-                    tfLoggedAt.getText().trim(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                );
-                m.setLoggedAt(dt);
+                m.setLoggedAt(LocalDateTime.parse(tfLoggedAt.getText().trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 
-                // parse ingredients (one per line: name:grams)
                 Map<String, Double> ingredients = new HashMap<>();
                 String[] lines = taIngredients.getText().split("\\r?\\n");
                 for (String line : lines) {
                     if (line.isBlank()) continue;
                     String[] parts = line.split(":");
-                    if (parts.length != 2) {
-                        throw new IllegalArgumentException("Invalid ingredient format: " + line);
-                    }
-                    String name = parts[0].trim();
-                    double qty = Double.parseDouble(parts[1].trim());
-                    ingredients.put(name, qty);
+                    if (parts.length != 2) throw new IllegalArgumentException("Invalid ingredient format: " + line);
+                    ingredients.put(parts[0].trim(), Double.parseDouble(parts[1].trim()));
                 }
                 m.setIngredients(ingredients);
 
-                // save to DB
                 dao.insert(m);
-
-                // compute total calories manually using working NutritionDAOImpl
                 double totalCals = 0.0;
-                NutritionDAOImpl nutritionDAO = new NutritionDAOImpl();
+                NutritionDAO nutritionDAO = new NutritionDAOImpl();
+                StringBuilder calorieDetails = new StringBuilder();
                 
-                System.out.println("=== Computing calories ===");
                 for (Map.Entry<String, Double> entry : m.getIngredients().entrySet()) {
                     String foodName = entry.getKey();
                     double grams = entry.getValue();
                     
                     try {
-                        double caloriesPerGram = nutritionDAO.getCaloriesPerGram(foodName);
-                        double ingredientCalories = caloriesPerGram * grams;
+                        double caloriesPer100g = nutritionDAO.getNutrientInfo(foodName).getCaloriesPerGram() * 100;
+                        double ingredientCalories = (caloriesPer100g / 100.0) * grams;
                         totalCals += ingredientCalories;
-                        
-                        System.out.println(foodName + ": " + caloriesPerGram + " cal/g × " + grams + "g = " + ingredientCalories + " calories");
-                    } catch (Exception e) {
-                        System.out.println("Error getting calories for '" + foodName + "': " + e.getMessage());
+                        calorieDetails.append(String.format("- %s (%.0fg): %.2f kcal\n", foodName, grams, ingredientCalories));
+                    } catch (SQLException e) {
+                        JOptionPane.showMessageDialog(
+                            MealLoggerUI.this,
+                            "Could not calculate calories.\nNutritional data not found for: '" + foodName + "'\n\nPlease check the spelling or add the food to the nutrition database.",
+                            "Nutrient Not Found",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+                        return; // Stop processing
                     }
                 }
-                
-                System.out.println("Total calories: " + totalCals);
 
                 JOptionPane.showMessageDialog(
                     MealLoggerUI.this,
                     String.format(
-                        "Saved meal with ID: %d%nTotal calories: %.2f kcal",
-                        m.getId(), totalCals
+                        "Saved meal with ID: %d\n\nCalorie Breakdown:\n%s\nTotal Calories: %.2f kcal",
+                        m.getId(), calorieDetails.toString(), totalCals
                     ),
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE
                 );
                 clearFields();
 
-            } catch (NumberFormatException nfe) {
-                JOptionPane.showMessageDialog(
-                    MealLoggerUI.this,
-                    "Please enter valid numbers for Profile ID and ingredient grams.",
-                    "Input Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            } catch (IllegalArgumentException iae) {
-                JOptionPane.showMessageDialog(
-                    MealLoggerUI.this,
-                    iae.getMessage(),
-                    "Format Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            } catch (SQLException sqle) {
-                JOptionPane.showMessageDialog(
-                    MealLoggerUI.this,
-                    "Database error:\n" + sqle.getMessage(),
-                    "DB Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(
-                    MealLoggerUI.this,
-                    "Unexpected error:\n" + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
+                JOptionPane.showMessageDialog(MealLoggerUI.this, "Error saving meal: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
             }
         }
     }
 
-    public void setProfile(int profileId) {
-        this.profileId = profileId;
-        Component[] components = getComponents();
-        updateProfileInComponents(this, profileId);
-    }
 
     private void updateProfileInComponents(Container container, int newProfileId) {
         for (Component comp : container.getComponents()) {
@@ -224,8 +195,31 @@ public class MealLoggerUI extends JPanel {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            MealDAO dao = new MySQLMealDAO();
-            new MealLoggerUI(dao);
+            try {
+                // Create the UI
+                MealDAO dao = DAOFactory.getMealDAO();
+                MealLoggerUI mealLoggerUI = new MealLoggerUI(dao);
+                
+                // Create and configure the frame
+                JFrame frame = new JFrame("Meal Logger UI Test");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.add(mealLoggerUI);
+                frame.setSize(600, 500);
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+                
+                System.out.println("✓ MealLoggerUI launched successfully!");
+                
+            } catch (Exception e) {
+                System.err.println("❌ Failed to launch MealLoggerUI: " + e.getMessage());
+                e.printStackTrace();
+                
+                // Show error dialog
+                JOptionPane.showMessageDialog(null, 
+                    "Failed to launch MealLoggerUI:\n" + e.getMessage(), 
+                    "Launch Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
 }
