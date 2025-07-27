@@ -22,14 +22,12 @@
     </properties>
 
     <dependencies>
-        <!-- MySQL JDBC driver -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.32</version>
         </dependency>
 
-        <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -43,7 +41,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JFreeChart and JCommon (only one version each) -->
         <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
@@ -55,14 +52,12 @@
             <version>1.0.24</version>
         </dependency>
 
-        <!-- Jackson Databind -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.15.2</version>
         </dependency>
 
-        <!-- Mockito for mocking -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -82,8 +77,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version> <!-- Use a modern version that supports JUnit 5 -->
-                <configuration>
+                <version>3.2.5</version> 
+                                <configuration>
                     <argLine>
                         --add-opens java.base/java.lang=ALL-UNNAMED
                         --add-opens java.base/java.util=ALL-UNNAMED
@@ -107,7 +102,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.nutrisci.util.CNFImporter</mainClass> <!-- Temporarily change to CNFImporter -->
+                    <mainClass>com.nutrisci.util.CNFImporter</mainClass> 
                 </configuration>
             </plugin>
         </plugins>
