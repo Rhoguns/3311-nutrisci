@@ -16,14 +16,8 @@ public class MySQLAppliedSwapDAO implements AppliedSwapDAO {
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            ps.setInt(1, appliedSwap.getProfileId());
-            ps.setInt(2, appliedSwap.getSwapRuleId());
-            ps.setDouble(3, appliedSwap.getOriginalQty());
-            ps.setDouble(4, appliedSwap.getNewQty());
-            ps.setDate(5, Date.valueOf(appliedSwap.getDate()));
-            ps.setTimestamp(6, Timestamp.valueOf(appliedSwap.getAppliedAt()));
-            ps.setInt(7, appliedSwap.getMealId());
-            
+        	setAppliedSwapParameters(ps, appliedSwap);
+        	
             ps.executeUpdate();
             
             try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
@@ -98,13 +92,7 @@ public class MySQLAppliedSwapDAO implements AppliedSwapDAO {
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            ps.setInt(1, appliedSwap.getProfileId());
-            ps.setInt(2, appliedSwap.getSwapRuleId());
-            ps.setDouble(3, appliedSwap.getOriginalQty());
-            ps.setDouble(4, appliedSwap.getNewQty());
-            ps.setDate(5, Date.valueOf(appliedSwap.getDate()));
-            ps.setTimestamp(6, Timestamp.valueOf(appliedSwap.getAppliedAt()));
-            ps.setInt(7, appliedSwap.getMealId());
+        	setAppliedSwapParameters(ps, appliedSwap);
             ps.setInt(8, appliedSwap.getId());
             
             ps.executeUpdate();
@@ -135,5 +123,18 @@ public class MySQLAppliedSwapDAO implements AppliedSwapDAO {
         appliedSwap.setAppliedAt(rs.getTimestamp("applied_at").toLocalDateTime());
         appliedSwap.setMealId(rs.getInt("meal_id"));
         return appliedSwap;
+    }
+    
+    //Helper setter method for shared AppliedSwap parameters for insert and update methods
+    private void setAppliedSwapParameters(PreparedStatement ps, AppliedSwap appliedSwap) throws SQLException{
+    	int index = 1;
+    	
+    	ps.setInt(index++, appliedSwap.getProfileId() );
+    	ps.setInt(index++, appliedSwap.getSwapRuleId() );
+    	ps.setDouble(index++, appliedSwap.getOriginalQty() );
+    	ps.setDouble(index++, appliedSwap.getNewQty() );
+    	ps.setDate(index++, Date.valueOf(appliedSwap.getDate()) );
+    	ps.setTimestamp(index++, Timestamp.valueOf(appliedSwap.getAppliedAt()) );
+    	ps.setInt(index++, appliedSwap.getMealId() );
     }
 }
