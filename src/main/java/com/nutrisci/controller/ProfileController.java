@@ -39,18 +39,7 @@ public class ProfileController {
      * @return an Optional containing the profile if found, empty Optional otherwise
      * @throws Exception if a database access error occurs
      */
-    public Optional<Profile> getProfileById(int id) throws Exception {
-        return profileDao.findById(id);
-    }
-    
-    /**
-     * Retrieves a profile by its unique identifier.
-     * 
-     * @param id the profile ID to search for
-     * @return an Optional containing the profile if found, empty Optional otherwise
-     * @throws SQLException if a database access error occurs
-     */
-    public Optional<Profile> getProfile(int id) throws SQLException {
+    public Optional<Profile> getProfileById(int id) throws SQLException {
         return profileDao.findById(id);
     }
     
