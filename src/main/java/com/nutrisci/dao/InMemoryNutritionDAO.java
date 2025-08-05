@@ -7,37 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InMemoryNutritionDAO implements NutritionDAO {
-    private Map<String, Double> caloriesMap;
     private Map<String, Map<String, Double>> breakdownMap;
     private Map<String, String> foodGroupMap;
 
     public InMemoryNutritionDAO() {
-        caloriesMap = new HashMap<>(Map.ofEntries(
-            Map.entry("Apple", 0.52),
-            Map.entry("Banana", 0.89),
-            Map.entry("White Rice", 1.3),
-            Map.entry("Brown Rice", 1.1),
-            Map.entry("White Bread", 2.65),
-            Map.entry("Whole Wheat Bread", 2.47),
-            Map.entry("Lettuce Wrap", 0.15),
-            Map.entry("Egg", 1.55),
-            Map.entry("egg", 1.55), 
-            Map.entry("Bread", 2.65),
-            Map.entry("Cucumber", 0.15)
-        ));
-
-        breakdownMap = new HashMap<>();
-        breakdownMap.put("Egg", Map.of("calories", 1.55, "protein", 0.13, "carbs", 0.01, "fat", 0.11));
-        breakdownMap.put("egg", Map.of("calories", 1.55, "protein", 0.13, "carbs", 0.01, "fat", 0.11));
-        breakdownMap.put("Bread", Map.of("calories", 2.65, "protein", 0.09, "carbs", 0.49, "fat", 0.03));
-        breakdownMap.put("Cucumber", Map.of("calories", 0.15, "protein", 0.007, "carbs", 0.04, "fat", 0.001));
-        breakdownMap.put("Apple", Map.of("calories", 0.52, "protein", 0.003, "carbs", 0.14, "fat", 0.002));
-        breakdownMap.put("Banana", Map.of("calories", 0.89, "protein", 0.011, "carbs", 0.23, "fat", 0.003));
-        breakdownMap.put("White Rice", Map.of("calories", 1.3, "protein", 0.027, "carbs", 0.28, "fat", 0.003));
-        breakdownMap.put("Brown Rice", Map.of("calories", 1.1, "protein", 0.026, "carbs", 0.23, "fat", 0.009));
-        breakdownMap.put("White Bread", Map.of("calories", 2.65, "protein", 0.09, "carbs", 0.49, "fat", 0.032));
-        breakdownMap.put("Whole Wheat Bread", Map.of("calories", 2.47, "protein", 0.13, "carbs", 0.41, "fat", 0.038));
-        breakdownMap.put("Lettuce Wrap", Map.of("calories", 0.15, "protein", 0.014, "carbs", 0.029, "fat", 0.002));
+    	initializeNutritionData();
 
         foodGroupMap = new HashMap<>();
         foodGroupMap.put("Apple", "Vegetables and Fruits");
@@ -48,9 +22,36 @@ public class InMemoryNutritionDAO implements NutritionDAO {
         foodGroupMap.put("Brown Rice", "Grain Products");
         foodGroupMap.put("White Bread", "Grain Products");
         foodGroupMap.put("Whole Wheat Bread", "Grain Products");
-        foodGroupMap.put("Bread", "Grain Products");
         foodGroupMap.put("Egg", "Meat and Alternatives");
-        foodGroupMap.put("egg", "Meat and Alternatives");
+    }
+    
+    private void initializeNutritionData() {
+    	breakdownMap = new HashMap<>();
+    	
+    	//Vegetables and Fruits
+    	addNutritionData("Apple", 0.52, 0.003, 0.14, 0.002);
+    	addNutritionData("Banana", 0.89, 0.011, 0.23, 0.003);
+    	addNutritionData("Cucumber", 0.15, 0.007, 0.04, 0.001);
+    	addNutritionData("Lettuce Wrap", 0.15, 0.014, 0.029, 0.002);
+        
+    	//Grain Products
+    	addNutritionData("Brown Rice", 1.1, 0.026, 0.23, 0.009);
+    	addNutritionData("White Bread", 2.65, 0.09, 0.49, 0.032);
+    	addNutritionData("White Rice", 1.3, 0.027, 0.28, 0.003);
+    	addNutritionData("Whole Wheat Bread", 2.47, 0.13, 0.41, 0.038);
+    	
+    	//Meat and Alternatives
+    	addNutritionData("Egg", 1.55, 0.13, 0.01, 0.11);
+
+    }
+    
+    private void addNutritionData(String foodName, double calories, double protein, double carbs, double fat){
+    	breakdownMap.put(foodName, Map.of(
+    			"calories", calories,
+    			"protein", protein,
+    			"carbs", carbs,
+    			"fat", fat
+    	));
     }
 
 
