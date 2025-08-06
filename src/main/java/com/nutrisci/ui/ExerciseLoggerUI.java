@@ -30,7 +30,7 @@ public class ExerciseLoggerUI extends JFrame {
     private JLabel statusLabel;
 
     public ExerciseLoggerUI() {
-        exerciseDAO = new InMemoryExerciseDAO(); // Use in-memory DAO for testing
+        exerciseDAO = new InMemoryExerciseDAO(); 
         initializeUI();
         setupEventHandlers();
     }
@@ -181,8 +181,70 @@ public class ExerciseLoggerUI extends JFrame {
         double duration = (Double) durationSpinner.getValue();
         String exerciseType = (String) exerciseTypeCombo.getSelectedItem();
         
-        // Calorie burn rates per minute (simplified for testing)
-        double caloriesPerMinute = switch (exerciseType) {
+        double caloriesPerMinute = getCaloriesPerMinute(exerciseType);
+        double totalCalories = calculateCaloriesBurned(exerciseType, duration);
+        
+        caloriesLabel.setText(String.format("%.1f kcal (%.1f cal/min × %.1f min)", 
+                                          totalCalories, caloriesPerMinute, duration));
+    }
+
+    private void logExercise() {
+        try {
+            if (!validateInputs()) {
+                return;
+            }
+            
+            Exercise exercise = createExerciseFromInputs();
+            int exerciseId = saveExercise(exercise);
+            updateLogDisplay(exercise, exerciseId);
+            showSuccessStatus(exercise.getCaloriesBurned());
+            clearInputFields();
+            
+        } catch (Exception e) {
+            showError("Error logging exercise: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private boolean validateInputs() {
+        if (profileId <= 0) {
+            showError("Profile not set. Please set a profile first.");
+            return false;
+        }
+
+        String exerciseName = exerciseNameField.getText().trim();
+        if (exerciseName.isEmpty()) {
+            showError("Exercise name is required.");
+            return false;
+        }
+        
+        return true;
+    }
+
+    private Exercise createExerciseFromInputs() {
+        String exerciseName = exerciseNameField.getText().trim();
+        String exerciseType = (String) exerciseTypeCombo.getSelectedItem();
+        double duration = (Double) durationSpinner.getValue();
+        double caloriesBurned = calculateCaloriesBurned(exerciseType, duration);
+
+        Exercise exercise = new Exercise();
+        exercise.setProfileId(profileId);
+        exercise.setName(exerciseName);
+        exercise.setExerciseType(exerciseType);
+        exercise.setDurationMinutes(duration);
+        exercise.setCaloriesBurned(caloriesBurned);
+        exercise.setPerformedAt(LocalDateTime.now());
+        
+        return exercise;
+    }
+
+    private double calculateCaloriesBurned(String exerciseType, double duration) {
+        double caloriesPerMinute = getCaloriesPerMinute(exerciseType);
+        return duration * caloriesPerMinute;
+    }
+
+    private double getCaloriesPerMinute(String exerciseType) {
+        return switch (exerciseType) {
             case "Running" -> 5.0;
             case "Walking" -> 3.0;
             case "Cycling" -> 4.0;
@@ -191,81 +253,25 @@ public class ExerciseLoggerUI extends JFrame {
             case "Yoga" -> 1.5;
             default -> 3.0;
         };
+    }
+
+    private int saveExercise(Exercise exercise) throws Exception {
+        return exerciseDAO.insert(exercise);
+    }
+
+    private void updateLogDisplay(Exercise exercise, int exerciseId) {
+        String logEntry = String.format("[%s] %s - %s: %.1f min, %.1f kcal burned (ID: %d)\n",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                exercise.getName(), exercise.getExerciseType(), 
+                exercise.getDurationMinutes(), exercise.getCaloriesBurned(), exerciseId);
         
-        double totalCalories = duration * caloriesPerMinute;
-        caloriesLabel.setText(String.format("%.1f kcal (%.1f cal/min × %.1f min)", 
-                                          totalCalories, caloriesPerMinute, duration));
+        logArea.append(logEntry);
+        logArea.setCaretPosition(logArea.getDocument().getLength());
     }
 
-    private void logExercise() {
-        try {
-            // Validate inputs
-            if (profileId <= 0) {
-                showError("Profile not set. Please set a profile first.");
-                return;
-            }
-
-            String exerciseName = exerciseNameField.getText().trim();
-            if (exerciseName.isEmpty()) {
-                showError("Exercise name is required.");
-                return;
-            }
-
-            String exerciseType = (String) exerciseTypeCombo.getSelectedItem();
-            double duration = (Double) durationSpinner.getValue();
-            
-            // Calculate calories burned
-            double caloriesPerMinute = switch (exerciseType) {
-                case "Running" -> 5.0;
-                case "Walking" -> 3.0;
-                case "Cycling" -> 4.0;
-                case "Swimming" -> 6.0;
-                case "Weightlifting" -> 2.5;
-                case "Yoga" -> 1.5;
-                default -> 3.0;
-            };
-            double caloriesBurned = duration * caloriesPerMinute;
-
-            // Create exercise object
-            Exercise exercise = new Exercise();
-            exercise.setProfileId(profileId);
-            exercise.setName(exerciseName);
-            exercise.setExerciseType(exerciseType);
-            exercise.setDurationMinutes(duration);
-            exercise.setCaloriesBurned(caloriesBurned);
-            exercise.setPerformedAt(LocalDateTime.now());
-
-            // Save exercise
-            int exerciseId = exerciseDAO.insert(exercise);
-            
-            // Update log area
-            String logEntry = String.format("[%s] %s - %s: %.1f min, %.1f kcal burned (ID: %d)\n",
-                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-                    exerciseName, exerciseType, duration, caloriesBurned, exerciseId);
-            
-            logArea.append(logEntry);
-            logArea.setCaretPosition(logArea.getDocument().getLength());
-
-            // Update status
-            statusLabel.setText(String.format("✅ Exercise logged successfully! Calories burned: %.1f kcal", caloriesBurned));
-            statusLabel.setForeground(new Color(0, 150, 0));
-
-            // Clear fields for next entry
-            clearFields();
-
-        } catch (Exception e) {
-            showError("Error logging exercise: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void clearFields() {
-        exerciseNameField.setText("");
-        exerciseTypeCombo.setSelectedItem("Running");
-        durationSpinner.setValue(30.0);
-        updateCaloriesEstimate();
-        statusLabel.setText("Ready - Enter exercise details and click 'Log Exercise'");
-        statusLabel.setForeground(Color.BLACK);
+    private void showSuccessStatus(double caloriesBurned) {
+        statusLabel.setText(String.format("✅ Exercise logged successfully! Calories burned: %.1f kcal", caloriesBurned));
+        statusLabel.setForeground(new Color(0, 150, 0));
     }
 
     private void showError(String message) {
@@ -274,10 +280,20 @@ public class ExerciseLoggerUI extends JFrame {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    /**
-     * Sets the profile ID for this exercise logger.
-     * Updates the UI to reflect the new profile.
-     */
+    private void clearFields() {
+        exerciseNameField.setText("");
+        exerciseTypeCombo.setSelectedIndex(0);
+        durationSpinner.setValue(30.0);
+        updateCaloriesEstimate();
+        statusLabel.setText("Ready - Enter exercise details and click 'Log Exercise'");
+        statusLabel.setForeground(Color.BLACK);
+    }
+
+    private void clearInputFields() {
+        clearFields();
+    }
+
+
     public void setProfile(int profileId) {
         if (profileId <= 0) {
             throw new IllegalArgumentException("Profile ID must be positive");
@@ -295,10 +311,7 @@ public class ExerciseLoggerUI extends JFrame {
         return profileId;
     }
 
-    /**
-     * Main method to launch the Exercise Logger UI.
-     * For testing purposes and standalone execution.
-     */
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
