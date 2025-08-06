@@ -7,14 +7,19 @@ import java.sql.SQLException;
  * Food nutrition data access.
  */
 public interface NutritionDAO {
-    /**
-     * Gets calories per gram.
-     */
-    @Deprecated
-    double getCaloriesPerGram(String foodName) throws SQLException;
+    //Gets nutrition info for food.
+    NutrientInfo getNutrientInfo(String nutrientType) throws SQLException;
+    
+    //Gets total calories for food.
 
-    /**
-     * Gets nutrition info for food.
-     */
-    NutrientInfo getNutrientInfo(String foodName) throws SQLException;
+    double getTotalCalories(String nutrientType) throws SQLException;
+    
+    //Gets total grams for food.
+    double getTotalGrams(String nutrientType) throws SQLException;
+
+    //Gets calories per gram.
+    double getCaloriesPerGram(String nutrientType) throws SQLException;
+    
+    // Helper method for defaults.
+    double getDefaultCaloriesPerGram(String nutrientType);
 }
