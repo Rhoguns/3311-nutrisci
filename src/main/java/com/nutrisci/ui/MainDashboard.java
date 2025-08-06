@@ -5,6 +5,7 @@ import com.nutrisci.dao.ProfileDAOImpl;
 
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Method;
 
 /**
  * Main app window.
@@ -13,7 +14,115 @@ public class MainDashboard extends JFrame {
     private int profileId;
     private JTabbedPane mainTabbedPane;
     private JLabel profileLabel;
+    
+    // Store tab components for easier management
+    private final java.util.List<TabComponent> tabComponents = new java.util.ArrayList<>();
+    
+    // Interface for profile-aware components
+    private interface ProfileAware {
+        void setProfile(int profileId);
+    }
+    
+    // Utility class for reflection operations
+    private static class ReflectionUtils {
+        /**
+         * Checks if an object has a specific method with given parameters.
+         * @param obj The object to check
+         * @param methodName The method name to look for
+         * @param paramTypes The parameter types of the method
+         * @return true if the method exists, false otherwise
+         */
+        static boolean hasMethod(Object obj, String methodName, Class<?>... paramTypes) {
+            if (obj == null || methodName == null) {
+                return false;
+            }
+            try {
+                obj.getClass().getMethod(methodName, paramTypes);
+                return true;
+            } catch (NoSuchMethodException e) {
+                return false;
+            }
+        }
+        
+        /**
+         * Safely invokes a method on an object using reflection.
+         * @param obj The object to invoke the method on
+         * @param methodName The method name to invoke
+         * @param paramTypes The parameter types
+         * @param args The arguments to pass to the method
+         * @return true if invocation succeeded, false otherwise
+         */
+        static boolean invokeMethod(Object obj, String methodName, 
+                                   Class<?>[] paramTypes, Object... args) {
+            try {
+                Method method = obj.getClass().getMethod(methodName, paramTypes);
+                method.invoke(obj, args);
+                return true;
+            } catch (Exception e) {
+                System.err.println("Failed to invoke " + methodName + " on " + 
+                    obj.getClass().getSimpleName() + ": " + e.getMessage());
+                return false;
+            }
+        }
+    }
+    
+    // Wrapper class to handle profile updates uniformly
+    private static class TabComponent {
+        private final Component component;
+        private final String title;
+        private final ProfileAware profileHandler;
+        
+        public TabComponent(String title, Component component) {
+            this.title = title;
+            this.component = component;
+            this.profileHandler = createProfileHandler(component);
+        }
+        
+        /**
+         * Creates a profile handler adapter for the component.
+         * Uses the ProfileAware interface if available, otherwise falls back to reflection.
+         */
+        private ProfileAware createProfileHandler(Component comp) {
+            // Check if component directly implements our interface
+            if (comp instanceof ProfileAware) {
+                return (ProfileAware) comp;
+            } 
+            
+            // Check if component has setProfile method via reflection
+            if (ReflectionUtils.hasMethod(comp, "setProfile", int.class)) {
+                // Create adapter using reflection
+                return profileId -> ReflectionUtils.invokeMethod(
+                    comp, "setProfile", new Class[]{int.class}, profileId
+                );
+            }
+            
+            // Null object pattern - component doesn't support profiles
+            return profileId -> {
+                System.out.println(comp.getClass().getSimpleName() + 
+                    " does not support profile updates");
+            };
+        }
+        
+        public void updateProfile(int profileId) {
+            if (profileHandler != null) {
+                profileHandler.setProfile(profileId);
+            }
+        }
+        
+        public Component getComponent() {
+            return component;
+        }
+        
+        public String getTitle() {
+            return title;
+        }
+    }
 
+    /**
+     * Creates a new MainDashboard for the specified profile.
+     * @param profileId The profile ID to load
+     * @throws IllegalArgumentException if profileId is not positive
+     */
     public MainDashboard(int profileId) {
         if (profileId <= 0) {
             throw new IllegalArgumentException("Profile ID must be positive");
@@ -31,27 +140,34 @@ public class MainDashboard extends JFrame {
         
         setLayout(new BorderLayout());
         
-        JPanel headerPanel = createHeaderPanel();
-        add(headerPanel, BorderLayout.NORTH);
+        add(createHeaderPanel(), BorderLayout.NORTH);
         
         mainTabbedPane = new JTabbedPane();
-        addAllTabs();
+        initializeTabs();
         add(mainTabbedPane, BorderLayout.CENTER);
         
-        JPanel footerPanel = createFooterPanel();
-        add(footerPanel, BorderLayout.SOUTH);
+        add(createFooterPanel(), BorderLayout.SOUTH);
     }
 
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
+        // Title
         JLabel titleLabel = new JLabel("NutriSci Dashboard", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         panel.add(titleLabel, BorderLayout.CENTER);
         
-        // Profile management panel
+        // Profile management
+        panel.add(createProfileManagementPanel(), BorderLayout.EAST);
+        
+        return panel;
+    }
+    
+    // Extracted profile management panel creation
+    private JPanel createProfileManagementPanel() {
         JPanel profilePanel = new JPanel(new FlowLayout());
+        
         profileLabel = new JLabel("Profile: " + profileId);
         profileLabel.setFont(new Font("Arial", Font.PLAIN, 16));
         
@@ -60,98 +176,73 @@ public class MainDashboard extends JFrame {
         
         profilePanel.add(profileLabel);
         profilePanel.add(changeProfileBtn);
-        panel.add(profilePanel, BorderLayout.EAST);
         
-        return panel;
+        return profilePanel;
     }
 
-    private void addAllTabs() {
+    // Clean, organized tab initialization
+    private void initializeTabs() {
         try {
-            // Profile Management - First tab
-            ProfileController profileController = new ProfileController(new ProfileDAOImpl());
-            ProfileUI profileUI = new ProfileUI(profileController);
-            mainTabbedPane.addTab("Profile Manager", profileUI);
-            profileUI.revalidate();
-            if (hasSetProfileMethod(profileUI)) {
-                profileUI.setProfile(profileId);
-            }
+            // Register all tabs in a clean, maintainable way
+            registerTab("Profile Manager", createProfileUI());
+            registerTab("Meal Logger", new MealLoggerUI());
+            registerTab("Meal Journal", new MealJournalUI());
+            registerTab("Compare Meals", new CompareMealsPanel());
+            registerTab("Swap Analysis", new SwapImpactPanel());
+            registerTab("Daily Intake Analysis", new DailyIntakePanel());
+            registerTab("CFG Compliance", new CfgCompliancePanel());
+            registerTab("Exercise Logger", new ExerciseLoggerUI());
             
-            // Meal Logging - Second tab
-            MealLoggerUI mealLoggerUI = new MealLoggerUI();
-            mainTabbedPane.addTab("Meal Logger", mealLoggerUI);
-            mealLoggerUI.revalidate();
-            if (hasSetProfileMethod(mealLoggerUI)) {
-                mealLoggerUI.setProfile(profileId);
-            }
-
-            // Meal Journal - Third tab
-            MealJournalUI mealJournalUI = new MealJournalUI();
-            mainTabbedPane.addTab("Meal Journal", mealJournalUI);
-            mealJournalUI.revalidate();
-            if (hasSetProfileMethod(mealJournalUI)) {
-                mealJournalUI.setProfile(profileId);
-            }
-            
-            // Compare Meals - Fourth tab
-            CompareMealsPanel compareMealsPanel = new CompareMealsPanel();
-            mainTabbedPane.addTab("Compare Meals", compareMealsPanel);
-            compareMealsPanel.revalidate();
-            if (hasSetProfileMethod(compareMealsPanel)) {
-                compareMealsPanel.setProfile(profileId);
-            }
-            
-            // Swap Analysis - Fifth tab
-            SwapImpactPanel swapAnalysisPanel = new SwapImpactPanel();
-            mainTabbedPane.addTab("Swap Analysis", swapAnalysisPanel);
-            swapAnalysisPanel.revalidate();
-            if (hasSetProfileMethod(swapAnalysisPanel)) {
-                swapAnalysisPanel.setProfile(profileId);
-            }
-
-            // Daily Intake Analysis - Sixth tab
-            DailyIntakePanel dailyIntakePanel = new DailyIntakePanel();
-            mainTabbedPane.addTab("Daily Intake Analysis", dailyIntakePanel);
-            dailyIntakePanel.revalidate();
-            dailyIntakePanel.setProfile(profileId);
-            
-            // CFG Compliance - Seventh tab
-            CfgCompliancePanel cfgCompliancePanel = new CfgCompliancePanel();
-            mainTabbedPane.addTab("CFG Compliance", cfgCompliancePanel);
-            cfgCompliancePanel.revalidate();
-            cfgCompliancePanel.setProfile(profileId);
-            
-            // Exercise Logger - Last tab
-            ExerciseLoggerUI exerciseLoggerUI = new ExerciseLoggerUI();
-            mainTabbedPane.addTab("Exercise Logger", exerciseLoggerUI);
-            exerciseLoggerUI.revalidate();
-            if (hasSetProfileMethod(exerciseLoggerUI)) {
-                exerciseLoggerUI.setProfile(profileId);
-            }
+            // Initialize all tabs with current profile
+            updateAllTabs(profileId);
             
         } catch (Exception e) {
-            System.err.println("Error in addAllTabs: " + e.getMessage());
-            
-            JPanel errorPanel = new JPanel(new BorderLayout());
-            JTextArea errorText = new JTextArea("Error loading UI panels:\n" + e.getMessage() + 
-                "\n\nStack trace:\n" + getStackTrace(e));
-            errorText.setEditable(false);
-            errorText.setBackground(Color.LIGHT_GRAY);
-            errorPanel.add(new JScrollPane(errorText), BorderLayout.CENTER);
-            mainTabbedPane.addTab("Error", errorPanel);
+            handleTabLoadingError(e);
         }
     }
     
-    private String getStackTrace(Exception e) {
-        return e.getMessage();
+    // Helper method to create ProfileUI
+    private Component createProfileUI() {
+        ProfileController profileController = new ProfileController(new ProfileDAOImpl());
+        return new ProfileUI(profileController);
     }
-
-    private boolean hasSetProfileMethod(Object obj) {
-        try {
-            obj.getClass().getMethod("setProfile", int.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
+    
+    // Clean method to register tabs
+    private void registerTab(String title, Component component) {
+        TabComponent tab = new TabComponent(title, component);
+        tabComponents.add(tab);
+        mainTabbedPane.addTab(title, component);
+        component.revalidate();
+    }
+    
+    // Simplified update method - no more message chains!
+    private void updateAllTabs(int newProfileId) {
+        tabComponents.forEach(tab -> tab.updateProfile(newProfileId));
+    }
+    
+    // Extracted error handling method
+    private void handleTabLoadingError(Exception e) {
+        System.err.println("Error loading tabs: " + e.getMessage());
+        e.printStackTrace();
+        
+        JPanel errorPanel = createErrorPanel(e);
+        mainTabbedPane.addTab("Error", errorPanel);
+    }
+    
+    // Create error panel for display
+    private JPanel createErrorPanel(Exception e) {
+        JPanel errorPanel = new JPanel(new BorderLayout());
+        
+        JTextArea errorText = new JTextArea(
+            String.format("Error loading UI panels:\n%s\n\nPlease restart the application.",
+                e.getMessage())
+        );
+        errorText.setEditable(false);
+        errorText.setBackground(Color.LIGHT_GRAY);
+        errorText.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        
+        errorPanel.add(new JScrollPane(errorText), BorderLayout.CENTER);
+        return errorPanel;
     }
 
     private JPanel createFooterPanel() {
@@ -159,9 +250,12 @@ public class MainDashboard extends JFrame {
         panel.setBorder(BorderFactory.createEtchedBorder());
         panel.setBackground(new Color(245, 245, 245));
         
-        JLabel statusLabel = new JLabel("Ready - All nutrition tracking features available", SwingConstants.LEFT);
+        // Status label
+        JLabel statusLabel = new JLabel("Ready - All nutrition tracking features available", 
+            SwingConstants.LEFT);
         statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
         
+        // Version label
         JLabel versionLabel = new JLabel("NutriSci v1.0 | EECS 3311", SwingConstants.RIGHT);
         versionLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 10));
         versionLabel.setFont(new Font("Arial", Font.ITALIC, 12));
@@ -172,74 +266,88 @@ public class MainDashboard extends JFrame {
         return panel;
     }
 
+    // Cleaner profile change logic
     private void changeProfile() {
         String input = JOptionPane.showInputDialog(this, 
             "Enter new Profile ID:", 
             "Change Profile", 
             JOptionPane.QUESTION_MESSAGE);
             
-        if (input != null && !input.trim().isEmpty()) {
-            try {
-                int newProfileId = Integer.parseInt(input.trim());
-                if (newProfileId > 0) {
-                    // Update all components with new profile ID
-                    updateAllComponentsProfileId(newProfileId);
-                    this.profileId = newProfileId;
-                    profileLabel.setText("Profile: " + profileId);
-                    setTitle("NutriSci Dashboard - Profile " + profileId);
-                } else {
-                    JOptionPane.showMessageDialog(this, 
-                        "Profile ID must be a positive number.", 
-                        "Invalid Input", 
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, 
-                    "Please enter a valid numeric Profile ID.", 
-                    "Invalid Input", 
-                    JOptionPane.ERROR_MESSAGE);
+        if (input == null || input.trim().isEmpty()) {
+            return; // User cancelled or entered nothing
+        }
+        
+        try {
+            int newProfileId = Integer.parseInt(input.trim());
+            
+            if (newProfileId <= 0) {
+                showInvalidProfileError("Profile ID must be a positive number.");
+                return;
             }
+            
+            // Update all components with new profile
+            applyProfileChange(newProfileId);
+            
+        } catch (NumberFormatException e) {
+            showInvalidProfileError("Please enter a valid numeric Profile ID.");
         }
     }
-
-    private void updateAllComponentsProfileId(int newProfileId) {
-        for (int i = 0; i < mainTabbedPane.getTabCount(); i++) {
-            Component tabComponent = mainTabbedPane.getComponentAt(i);
-            if (hasSetProfileMethod(tabComponent)) {
-                try {
-                    tabComponent.getClass().getMethod("setProfile", int.class)
-                        .invoke(tabComponent, newProfileId);
-                } catch (Exception e) {
-                    System.err.println("Error updating profile for tab " + i + ": " + e.getMessage());
-                }
-            }
-        }
+    
+    // Apply profile change to all components
+    private void applyProfileChange(int newProfileId) {
+        updateAllTabs(newProfileId);
+        updateProfileDisplay(newProfileId);
+    }
+    
+    // Update UI elements to reflect new profile
+    private void updateProfileDisplay(int newProfileId) {
+        this.profileId = newProfileId;
+        profileLabel.setText("Profile: " + profileId);
+        setTitle("NutriSci Dashboard - Profile " + profileId);
+    }
+    
+    // Show error dialog with custom message
+    private void showInvalidProfileError(String message) {
+        JOptionPane.showMessageDialog(this, 
+            message, 
+            "Invalid Input", 
+            JOptionPane.ERROR_MESSAGE);
     }
 
+    /**
+     * Main entry point for the application.
+     */
     public static void main(String[] args) {
+        // Set system look and feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception err) {
-            // Use default look and feel
+        } catch (Exception e) {
+            // Fall back to default look and feel
+            System.err.println("Could not set system look and feel: " + e.getMessage());
         }
         
         SwingUtilities.invokeLater(() -> {
-            // No default profile - must be provided
             if (args.length > 0) {
-                try {
-                    int profileId = Integer.parseInt(args[0]);
-                    new MainDashboard(profileId);
-                } catch (NumberFormatException e) {
-                    showProfileSelector();
-                }
+                launchWithProfile(args[0]);
             } else {
-                showProfileSelector();
+                launchProfileSelector();
             }
         });
     }
-
-    private static void showProfileSelector() {
-        // Launch ProfileSelector if no valid profile ID provided
+    
+    // Launch dashboard with specified profile
+    private static void launchWithProfile(String profileArg) {
+        try {
+            int profileId = Integer.parseInt(profileArg);
+            new MainDashboard(profileId);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid profile ID: " + profileArg);
+            launchProfileSelector();
+        }
+    }
+    
+    // Launch profile selector when no valid profile provided
+    private static void launchProfileSelector() {
         new ProfileSelector();
     }
 }
