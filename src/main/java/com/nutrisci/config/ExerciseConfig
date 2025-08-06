@@ -1,0 +1,20 @@
+package com.nutrisci.config;
+
+import java.time.LocalDateTime;
+
+public class ExerciseConfig {
+    public final int profileId;
+    public final String name;
+    public final double durationMinutes;
+    public final double caloriesBurned;
+    public final LocalDateTime performedAt;
+    
+    public ExerciseConfig(int profileId, String name, double durationMinutes, 
+                         double caloriesBurned, LocalDateTime performedAt) {
+        this.profileId = profileId;
+        this.name = name;
+        this.durationMinutes = durationMinutes;
+        this.caloriesBurned = caloriesBurned;
+        this.performedAt = performedAt;
+    }
+}
